@@ -2,7 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { PageHeader, Card } from "@/components/ui";
 import { DataTable } from "@/components/DataTable";
-import { formatTaka, formatDate } from "@/lib/utils";
+import { formatTaka, formatDate, formatNumber } from "@/lib/utils";
 import { getLang } from "@/lib/i18n-server";
 import { ByproductForm } from "./ByproductForm";
 import { Printer, Boxes, TrendingUp, DollarSign } from "lucide-react";
@@ -71,7 +71,7 @@ export default async function ByproductsPage() {
             </span>
           </div>
           <p className="mt-1 text-base font-bold text-gray-900 sm:text-xl">
-            {byproducts.length} {isEn ? "items" : "টি"}
+            {formatNumber(byproducts.length, lang)} {isEn ? "items" : "টি"}
           </p>
         </Card>
 
@@ -83,7 +83,7 @@ export default async function ByproductsPage() {
             </span>
           </div>
           <p className="mt-1 text-base font-bold text-indigo-700 sm:text-xl">
-            {byproductSales.length} {isEn ? "invoices" : "টি"}
+            {formatNumber(byproductSales.length, lang)} {isEn ? "invoices" : "টি"}
           </p>
         </Card>
       </div>

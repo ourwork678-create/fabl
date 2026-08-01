@@ -159,7 +159,7 @@ export function MachinesView({ initialMachines }: { initialMachines: Machine[] }
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           <Card className="card-gradient">
             <p className="text-xs text-gray-500">{isEn ? "Total Machinery" : "মোট মেশিনারি"}</p>
-            <p className="text-lg font-bold text-gray-900">{machineryTotal}</p>
+            <p className="text-lg font-bold text-gray-900">{formatNumber(machineryTotal, lang)}</p>
           </Card>
           <Card className="card-gradient">
             <div className="flex items-center gap-1.5">
@@ -169,11 +169,11 @@ export function MachinesView({ initialMachines }: { initialMachines: Machine[] }
               </span>
               <p className="text-xs text-gray-500">{isEn ? "Running" : "চলমান"}</p>
             </div>
-            <p className="text-lg font-bold text-[#25D366]">{machineryRunning}</p>
+            <p className="text-lg font-bold text-[#25D366]">{formatNumber(machineryRunning, lang)}</p>
           </Card>
           <Card className="card-gradient">
             <p className="text-xs text-gray-500">{isEn ? "Closed / Maintenance" : "বন্ধ/মেরামতে"}</p>
-            <p className="text-lg font-bold text-gray-900">{machineryOthers}</p>
+            <p className="text-lg font-bold text-gray-900">{formatNumber(machineryOthers, lang)}</p>
           </Card>
         </div>
 

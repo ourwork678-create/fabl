@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useLang } from "@/components/LangProvider";
 import { PageHeader, Card } from "@/components/ui";
-import { formatTaka } from "@/lib/utils";
+import { formatTaka , formatNumber } from "@/lib/utils";
 import { Users, Plus, Search, Edit2, Trash2, User, Wallet } from "lucide-react";
 import { deleteCustomer } from "../parties/actions";
 
@@ -86,7 +86,7 @@ export function CustomerView({
             <Users className="text-brand-600" size={16} />
             <p className="text-xs text-gray-500">{isEn ? "Total Customers" : "মোট কাস্টমার"}</p>
           </div>
-          <p className="text-lg font-bold text-gray-900 mt-1">{totalCount} {isEn ? "customers" : "জন"}</p>
+          <p className="text-lg font-bold text-gray-900 mt-1">{formatNumber(totalCount, lang)} {isEn ? "customers" : "জন"}</p>
         </Card>
 
         <Card className="card-gradient p-3.5">
@@ -110,7 +110,7 @@ export function CustomerView({
             <Users className="text-amber-700" size={16} />
             <p className="text-xs text-gray-500">{isEn ? "Customers with Due" : "মোট বাকি রাখা কাস্টমার"}</p>
           </div>
-          <p className="text-lg font-bold text-amber-700 mt-1">{withDueCount} {isEn ? "customers" : "জন"} ({formatTaka(totalDue, lang)})</p>
+          <p className="text-lg font-bold text-amber-700 mt-1">{formatNumber(withDueCount, lang)} {isEn ? "customers" : "জন"} ({formatTaka(totalDue, lang)})</p>
         </Card>
       </div>
 

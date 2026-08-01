@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useLang } from "@/components/LangProvider";
 import { PageHeader, Card } from "@/components/ui";
-import { formatTaka } from "@/lib/utils";
+import { formatTaka, formatNumber } from "@/lib/utils";
 import { Users, Plus, Search, Edit2, Trash2, Eye, UserCheck, Briefcase, Wallet, User } from "lucide-react";
 import { deleteWorkforceMember } from "./actions";
 import { SalaryGenForm } from "./SalaryGenForm";
@@ -145,7 +145,7 @@ export function WorkforceView({
             <Users className="text-[#7c3aed]" size={16} />
             <p className="text-xs text-gray-500">{isEn ? "Total Members" : "মোট কর্মী"}</p>
           </div>
-          <p className="text-lg font-bold text-gray-900 mt-1">{totalCount} {isEn ? "members" : "জন"} ({isEn ? "Active" : "সক্রিয়"} {activeCount})</p>
+          <p className="text-lg font-bold text-gray-900 mt-1">{formatNumber(totalCount, lang)} {isEn ? "members" : "জন"} ({isEn ? "Active" : "সক্রিয়"} {formatNumber(activeCount, lang)})</p>
         </Card>
 
         <Card className="card-gradient p-3.5">
@@ -300,7 +300,7 @@ export function WorkforceView({
         <div className="space-y-2">
           <h4 className="font-semibold text-xs text-indigo-950 flex items-center justify-between">
             <span>{isEn ? "Officers & Staff List" : "মিলের কর্মকর্তা ও স্টাফদের পদবী এবং নির্ধারিত বেতন"}</span>
-            <span className="text-[10px] text-gray-500 font-normal">({staffUsers.length} {isEn ? "Active Staff" : "জন সক্রিয় স্টাফ"})</span>
+            <span className="text-[10px] text-gray-500 font-normal">({formatNumber(staffUsers.length, lang)} {isEn ? "Active Staff" : "জন সক্রিয় স্টাফ"})</span>
           </h4>
 
           <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xs">

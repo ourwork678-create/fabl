@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { PageHeader, Card } from "@/components/ui";
 import { DataTable } from "@/components/DataTable";
-import { formatTaka, formatDate } from "@/lib/utils";
+import { formatTaka, formatDate, formatNumber } from "@/lib/utils";
 import { lbl, type Locale } from "@/lib/i18n";
 import { getLang } from "@/lib/i18n-server";
 import { UtilityForm } from "./UtilityForm";
@@ -79,7 +79,7 @@ export default async function UtilitiesPage() {
             </span>
           </div>
           <p className="mt-1 text-base font-bold text-gray-900 sm:text-xl">
-            {utilityExpenses.length} {isEn ? "entries" : "টি"}
+            {formatNumber(utilityExpenses.length, lang)} {isEn ? "entries" : "টি"}
           </p>
         </Card>
       </div>

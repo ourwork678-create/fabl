@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useLang } from "@/components/LangProvider";
 import { PageHeader, Card } from "@/components/ui";
-import { formatTaka } from "@/lib/utils";
+import { formatTaka , formatNumber } from "@/lib/utils";
 import { Users, Plus, Search, Edit2, Trash2, User, Wallet } from "lucide-react";
 import { deleteSupplier } from "../parties/actions";
 import { PaymentForm } from "../parties/PaymentForm";
@@ -86,7 +86,7 @@ export function SupplierView({
             <Users className="text-[#7c3aed]" size={16} />
             <p className="text-xs text-gray-500">{isEn ? "Total Suppliers" : "মোট সাপ্লায়ার"}</p>
           </div>
-          <p className="text-lg font-bold text-gray-900 mt-1">{totalCount} {isEn ? "suppliers" : "জন"}</p>
+          <p className="text-lg font-bold text-gray-900 mt-1">{formatNumber(totalCount, lang)} {isEn ? "suppliers" : "জন"}</p>
         </Card>
 
         <Card className="card-gradient p-3.5">
