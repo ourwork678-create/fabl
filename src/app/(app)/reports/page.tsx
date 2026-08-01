@@ -80,9 +80,27 @@ export default async function ReportsPage({
   const totalWorkerPayments = workerPayments.reduce((sum, w) => sum + Number(w.amount), 0);
   const totalCashDeposited = cashDepositExpenses.reduce((sum, c) => sum + Number(c.amount), 0);
 
-  // নগদ প্রাপ্তি/প্রদান — বাকির অপরিশোধিত অংশ বাদ, শুধু আসলে পরিশোধিত টাকা (ক্যাশ হিসাবের জন্য)
-  const totalSalesCash = sales.reduce((sum, s) => sum + Number(s.paidAmount), 0);
-  const totalPurchasesCash = purchases.reduce((sum, p) => sum + Number(p.paidAmount), 0);
+  // নগদ প্রবাহ (সময়-সঠিক): মেমো কাটার সময়ের নগদ = paidAmount − পরবর্তী পেমেন্ট-বরাদ্দ;
+  // তার সাথে এই পিরিয়ডে আসা/দেওয়া Payment (ভাউচার) — আগের মাসের বকেয়া আদায়ও এই মাসের ক্যাশে ধরা পড়ে।
+  const periodPayments = await prisma.payment.findMany({
+    where: { date: { gte: startDate, lt: endExclusive } },
+    select: { direction: true, amount: true },
+  });
+  const docIds = [...sales.map((s) => s.id), ...purchases.map((p) => p.id)];
+  const allocationSums = docIds.length
+    ? await prisma.paymentAllocation.groupBy({
+        by: ["docId"],
+        where: { docId: { in: docIds } },
+        _sum: { amount: true },
+      })
+    : [];
+  const allocatedByDoc = new Map(allocationSums.map((a) => [a.docId, Number(a._sum.amount ?? 0)]));
+  const receivedInPeriod = periodPayments.filter((p) => p.direction === "RECEIVED").reduce((sum, p) => sum + Number(p.amount), 0);
+  const paidOutInPeriod = periodPayments.filter((p) => p.direction === "PAID").reduce((sum, p) => sum + Number(p.amount), 0);
+  const totalSalesCash =
+    sales.reduce((sum, s) => sum + Math.max(0, Number(s.paidAmount) - (allocatedByDoc.get(s.id) ?? 0)), 0) + receivedInPeriod;
+  const totalPurchasesCash =
+    purchases.reduce((sum, p) => sum + Math.max(0, Number(p.paidAmount) - (allocatedByDoc.get(p.id) ?? 0)), 0) + paidOutInPeriod;
 
   // নিট আয়/লাভ = বিক্রয় - (ক্রয় + সাধারণ খরচ + বেতন + কর্মী মজুরি প্রদান)
   const netProfit = totalSales - (totalPurchases + totalGeneralExpenses + totalSalaries + totalWorkerPayments);
