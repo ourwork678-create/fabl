@@ -4,6 +4,11 @@
 export const USER_ROLES = ["OWNER", "MANAGER", "ACCOUNTANT", "OPERATOR"] as const;
 export type UserRole = (typeof USER_ROLES)[number];
 
+// রোল অনুসারে সিনিয়রিটি (OWNER সর্বোচ্চ) — অনুমতি যাচাইয়ে ব্যবহৃত
+export function roleRank(role: string): number {
+  return { OWNER: 4, MANAGER: 3, ACCOUNTANT: 2, OPERATOR: 1 }[role] ?? 0;
+}
+
 export const ITEM_TYPES = ["PADDY", "RICE", "BYPRODUCT"] as const;
 export type ItemType = (typeof ITEM_TYPES)[number];
 

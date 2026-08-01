@@ -326,6 +326,20 @@ model Payment {
   @@index([date])
 }
 
+// পেমেন্টের বরাদ্দ — কোন পেমেন্ট কোন বিক্রয়/ক্রয় মেমোতে কত টাকা বরাদ্দ হয়েছে।
+// পেমেন্ট মুছলে ঠিক এই বরাদ্দগুলোই উল্টানো হয় (ভুল মেমোতে বকেয়া ফেরত এড়াতে)।
+model PaymentAllocation {
+  id        String   @id @default(cuid())
+  paymentId String
+  docType   String   // SALE | PURCHASE
+  docId     String   // Sale.id বা Purchase.id
+  amount    Decimal
+  createdAt DateTime @default(now())
+
+  @@index([paymentId])
+  @@index([docType, docId])
+}
+
 // ===================== কর্মীবাহিনী (Workforce) =====================
 
 model WorkforceMember {

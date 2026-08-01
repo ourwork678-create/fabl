@@ -105,7 +105,7 @@ export function ByproductForm({
           <label className="label">{isEn ? "Quantity (Bags/Maund)" : "বিক্রয়ের পরিমাণ (বস্তা/মণ)"}</label>
           <input
             type="number"
-            step="1"
+            step="any"
             name="quantity"
             value={quantity}
             onChange={(e) => handleQtyChange(Number(e.target.value))}
@@ -120,7 +120,7 @@ export function ByproductForm({
           <label className="label">{isEn ? "Rate (Tk / Bag)" : "দর (টাকা প্রতি বস্তা/মণ)"}</label>
           <input
             type="number"
-            step="1"
+            step="any"
             name="rate"
             value={rate}
             onChange={(e) => handleRateChange(Number(e.target.value))}
@@ -146,7 +146,7 @@ export function ByproductForm({
           <label className="label">{isEn ? "Paid Amount (Tk)" : "নগদ পরিশোধের টাকা"}</label>
           <input
             type="number"
-            step="1"
+            step="any"
             name="paidAmount"
             value={paidAmount}
             onChange={(e) => setPaidAmount(Number(e.target.value))}

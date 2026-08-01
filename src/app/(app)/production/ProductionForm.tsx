@@ -26,9 +26,11 @@ export function ProductionForm({
   ]);
 
   // ২. স্থায়ী উপজাতসমূহ (খুদ, গুঁড়া, তুষ) — নামে মেলানো; অনুপস্থিত হলে undefined
-  const khudItem = outputItems.find((o) => o.name.includes("খুদ") || o.name.toLowerCase().includes("broken"));
-  const guraItem = outputItems.find((o) => o.name.includes("গুঁড়া") || o.name.includes("কুঁড়া") || o.name.toLowerCase().includes("bran"));
-  const tushItem = outputItems.find((o) => o.name.includes("তুষ") || o.name.toLowerCase().includes("husk"));
+  // বাংলা ইউনিকোডের দুই রূপ (precomposed/decomposed) মিলাতে NFC নরমালাইজ করে খোঁজা
+  const nameHas = (o: Item, key: string) => o.name.normalize("NFC").toLowerCase().includes(key.normalize("NFC").toLowerCase());
+  const khudItem = outputItems.find((o) => nameHas(o, "খুদ") || nameHas(o, "broken"));
+  const guraItem = outputItems.find((o) => nameHas(o, "গুঁড়া") || nameHas(o, "কুঁড়া") || nameHas(o, "bran"));
+  const tushItem = outputItems.find((o) => nameHas(o, "তুষ") || nameHas(o, "husk"));
 
   const [khudQty, setKhudQty] = useState<number | "">(0);
   const [guraQty, setGuraQty] = useState<number | "">(0);
@@ -113,6 +115,20 @@ export function ProductionForm({
       }
     });
 
+    // ইনভেন্টরিতে আইটেম না থাকলে টাইপ করা পরিমাণ নীরবে বাদ যেত — এখন স্পষ্ট বার্তা
+    const missing: string[] = [];
+    if (Number(khudQty) > 0 && !khudItem) missing.push("খুদ");
+    if (Number(guraQty) > 0 && !guraItem) missing.push("গুঁড়া");
+    if (Number(tushQty) > 0 && !tushItem) missing.push("তুষ");
+    if (missing.length > 0) {
+      alert(
+        isEn
+          ? `No inventory item found for: ${missing.join(", ")}. Create the item first (Inventory page).`
+          : `${missing.join(", ")} নামে কোনো ইনভেন্টরি আইটেম নেই — আগে ইনভেন্টরি পেজ থেকে আইটেমটি তৈরি করুন, নাহলে এই পরিমাণ সংরক্ষণ হবে না।`
+      );
+      return;
+    }
+
     if (validInputs.length === 0) {
       alert(isEn ? "Please select Paddy and enter quantity (Maund)." : "অনুগ্রহ করে অন্তত একটি ধানের জাত ড্রপডাউন থেকে সিলেক্ট করে পরিমাণ (মণ) লিখুন।");
       return;
@@ -180,7 +196,7 @@ export function ProductionForm({
 
               <input
                 type="number"
-                step="1"
+                step="any"
                 placeholder={isEn ? "Quantity (Maund)" : "পরিমাণ (মণ)"}
                 value={l.quantity || ""}
                 onChange={(e) => setInputLine(i, "quantity", e.target.value === "" ? "" : Number(e.target.value))}
@@ -232,7 +248,7 @@ export function ProductionForm({
             </div>
             <input
               type="number"
-              step="1"
+              step="any"
               placeholder={isEn ? "Quantity (Kg)" : "উৎপাদন পরিমাণ (কেজি)"}
               value={khudQty || ""}
               onChange={(e) => setKhudQty(e.target.value === "" ? "" : Number(e.target.value))}
@@ -248,7 +264,7 @@ export function ProductionForm({
             </div>
             <input
               type="number"
-              step="1"
+              step="any"
               placeholder={isEn ? "Quantity (Bags)" : "উৎপাদন পরিমাণ (বস্তা)"}
               value={guraQty || ""}
               onChange={(e) => setGuraQty(e.target.value === "" ? "" : Number(e.target.value))}
@@ -264,7 +280,7 @@ export function ProductionForm({
             </div>
             <input
               type="number"
-              step="1"
+              step="any"
               placeholder={isEn ? "Quantity (Bags)" : "উৎপাদন পরিমাণ (বস্তা)"}
               value={tushQty || ""}
               onChange={(e) => setTushQty(e.target.value === "" ? "" : Number(e.target.value))}
@@ -298,7 +314,7 @@ export function ProductionForm({
 
               <input
                 type="number"
-                step="1"
+                step="any"
                 placeholder={isEn ? "Production Qty (Kg)" : "উৎপাদন পরিমাণ (কেজি)"}
                 value={l.quantity || ""}
                 onChange={(e) => setRiceLine(i, "quantity", e.target.value === "" ? "" : Number(e.target.value))}

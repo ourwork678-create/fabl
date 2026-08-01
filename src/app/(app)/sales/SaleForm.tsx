@@ -28,7 +28,8 @@ export function SaleForm({
   const total = Math.max(0, subtotal - discount);
 
   function addLine() {
-    setLines([...lines, { itemId: riceItems[0]?.id ?? "", quantity: 0, rate: 0 }]);
+    // নতুন লাইনেও নির্বাচিত আইটেমের বিক্রয় দর প্রি-ফিল হবে (আগে ০ থেকে যেত)
+    setLines([...lines, { itemId: riceItems[0]?.id ?? "", quantity: 0, rate: Number(riceItems[0]?.saleRate ?? 0) }]);
   }
   function removeLine(i: number) {
     setLines(lines.filter((_, idx) => idx !== i));
@@ -109,8 +110,8 @@ export function SaleForm({
                     <option key={p.id} value={p.id}>{p.name} ({t("inv.currentStock")}: {fmt(p.currentStock)})</option>
                   ))}
                 </select>
-                <input type="number" step="1" placeholder={t("pur.form.qty")} value={l.quantity || ""} onChange={(e) => update(i, "quantity", e.target.value)} className="input col-span-3" />
-                <input type="number" step="1" placeholder={t("pur.form.rate")} value={l.rate || ""} onChange={(e) => update(i, "rate", e.target.value)} className="input col-span-2" />
+                <input type="number" step="any" placeholder={t("pur.form.qty")} value={l.quantity || ""} onChange={(e) => update(i, "quantity", e.target.value)} className="input col-span-3" />
+                <input type="number" step="any" placeholder={t("pur.form.rate")} value={l.rate || ""} onChange={(e) => update(i, "rate", e.target.value)} className="input col-span-2" />
                 <div className="col-span-1 flex items-center justify-center text-xs font-medium">৳{fmt(l.quantity * l.rate)}</div>
                 <button type="button" onClick={() => removeLine(i)} className="col-span-1 flex items-center justify-center text-red-500 hover:bg-red-50 rounded">
                   <Trash2 size={16} />
@@ -135,11 +136,11 @@ export function SaleForm({
         <div className="space-y-3">
           <div>
             <label className="label">{t("pur.form.discount")}</label>
-            <input name="discount" type="number" step="1" value={discount || ""} onChange={(e) => setDiscount(Number(e.target.value))} className="input" />
+            <input name="discount" type="number" step="any" value={discount || ""} onChange={(e) => setDiscount(Number(e.target.value))} className="input" />
           </div>
           <div>
             <label className="label">{t("pur.form.paidAmount")}</label>
-            <input name="paidAmount" type="number" step="1" value={paid || ""} onChange={(e) => setPaid(Number(e.target.value))} className="input" />
+            <input name="paidAmount" type="number" step="any" value={paid || ""} onChange={(e) => setPaid(Number(e.target.value))} className="input" />
           </div>
         </div>
         <div className="rounded-lg bg-gray-50 p-4 text-sm">

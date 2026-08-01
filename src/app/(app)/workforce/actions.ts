@@ -2,15 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireUser, requireRole } from "@/lib/guard";
-import { USER_ROLES } from "@/lib/constants";
-
-// রোল অনুসারে সিনিয়রিটি (OWNER সর্বোচ্চ)
-function roleRank(role: string): number {
-  return { OWNER: 4, MANAGER: 3, ACCOUNTANT: 2, OPERATOR: 1 }[role] ?? 0;
-}
+import { parseDateLocal } from "@/lib/utils";
+import { USER_ROLES, roleRank } from "@/lib/constants";
+import { generateSalariesForMonth, markSalaryPaid } from "@/lib/salary";
 
 // Helper: parse decimal input
 function parseDecimal(v: FormDataEntryValue | null): number {
@@ -99,7 +95,7 @@ export async function createWorkforceTransaction(formData: FormData) {
   const type = formData.get("type") as string; // BILL | PAYMENT
   const amount = parseDecimal(formData.get("amount"));
   const dateStr = formData.get("date") as string;
-  const date = dateStr ? new Date(dateStr) : new Date();
+  const date = parseDateLocal(dateStr);
   const description = (formData.get("description") as string)?.trim() || null;
   const paymentMethod = (formData.get("paymentMethod") as string) || null;
 
@@ -199,40 +195,7 @@ export async function deleteWorkforceTransaction(id: string) {
 
 export async function generateSalaries(formData: FormData) {
   await requireUser();
-  const month = formData.get("month") as string;
-  if (!month) throw new Error("মাস দিন");
-
-  // Exclude owner (মালিকের বেতন হবে না)
-  const users = await prisma.user.findMany({
-    where: {
-      active: true,
-      role: { not: "OWNER" },
-      monthlySalary: { gt: 0 },
-    },
-  });
-
-  if (users.length === 0) throw new Error("কোনো বেতনভুক্ত কর্মকর্তা বা কর্মচারী নেই (মালিক ব্যতীত)");
-
-  let created = 0;
-  for (const u of users) {
-    try {
-      await prisma.salary.create({
-        data: {
-          userId: u.id,
-          month,
-          amount: u.monthlySalary!,
-          bonus: 0,
-          deduction: 0,
-          netAmount: u.monthlySalary!,
-          status: "PENDING",
-        },
-      });
-      created++;
-    } catch (e) {
-      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") continue;
-      throw e;
-    }
-  }
+  const created = await generateSalariesForMonth(formData.get("month") as string);
 
   revalidatePath("/workforce");
   revalidatePath("/reports");
@@ -242,13 +205,7 @@ export async function generateSalaries(formData: FormData) {
 
 export async function paySalary(id: string) {
   await requireUser();
-  const existing = await prisma.salary.findUnique({ where: { id } });
-  if (!existing) throw new Error("বেতন রেকর্ড পাওয়া যায়নি");
-  if (existing.status === "PAID") throw new Error("এই বেতন ইতিমধ্যে পরিশোধিত");
-  await prisma.salary.update({
-    where: { id },
-    data: { status: "PAID", paidDate: new Date() },
-  });
+  await markSalaryPaid(id);
 
   revalidatePath("/workforce");
   revalidatePath("/reports");
@@ -259,7 +216,8 @@ export async function createStaffUser(formData: FormData) {
   const session = await requireRole("OWNER", "MANAGER");
   const callerRole = (session.user as any).role as string;
   const name = (formData.get("name") as string)?.trim();
-  const email = (formData.get("email") as string)?.trim();
+  // লগইনের সময় ছোট হাতের অক্ষরে খোঁজা হয়, তাই এখানেও ছোট হাতের অক্ষরে সংরক্ষণ আবশ্যক
+  const email = (formData.get("email") as string)?.trim().toLowerCase();
   const phone = (formData.get("phone") as string)?.trim() || null;
   const designation = (formData.get("designation") as string)?.trim() || null;
   const role = (formData.get("role") as string) || "OPERATOR";
@@ -274,6 +232,9 @@ export async function createStaffUser(formData: FormData) {
   if (roleRank(role) >= roleRank(callerRole)) {
     throw new Error("এই রোলে ইউজার তৈরির অনুমতি নেই");
   }
+
+  const existing = await prisma.user.findUnique({ where: { email } });
+  if (existing) throw new Error("এই ইমেইল ইতিমধ্যে আছে");
 
   const bcrypt = (await import("bcryptjs")).default;
   const passwordHash = await bcrypt.hash(password, 10);

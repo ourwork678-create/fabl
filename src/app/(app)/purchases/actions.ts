@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/guard";
-import { genReceiptNo, round2, withRetry } from "@/lib/utils";
+import { genReceiptNo, round2, withRetry, parseDateLocal } from "@/lib/utils";
 
 type LineItem = { itemId: string; quantity: number; rate: number };
 
@@ -53,7 +53,7 @@ export async function createPurchase(input: {
       const purchase = await tx.purchase.create({
         data: {
           receiptNo,
-          date: new Date(input.date),
+          date: parseDateLocal(input.date),
           supplierId: input.supplierId,
           subtotal,
           discount,
@@ -115,8 +115,14 @@ export async function deletePurchase(id: string) {
       where: { id },
       include: { items: true },
     });
-    // স্টক ফেরত
+    // স্টক ফেরত — ধান ইতিমধ্যে মিলিং/বিক্রি হয়ে গেলে স্টক ঋণাত্মক হতে দেওয়া যাবে না
     for (const it of purchase.items) {
+      const item = await tx.inventoryItem.findUniqueOrThrow({ where: { id: it.itemId } });
+      if (Number(item.currentStock) < Number(it.quantity)) {
+        throw new Error(
+          `${item.name} এর স্টক ইতিমধ্যে ব্যবহৃত হয়েছে (আছে ${item.currentStock}), এই ক্রয় মুছা যাবে না`
+        );
+      }
       await tx.inventoryItem.update({
         where: { id: it.itemId },
         data: { currentStock: { decrement: Number(it.quantity) } },
@@ -137,6 +143,8 @@ export async function deletePurchase(id: string) {
     }
     await tx.purchase.delete({ where: { id } });
     await tx.stockMovement.deleteMany({ where: { refType: "PURCHASE", refId: id } });
+    // এই ক্রয়ের পেমেন্ট-বরাদ্দ রেকর্ড পরিষ্কার (ভবিষ্যতে পেমেন্ট মুছলে ভুতুড়ে ফেরত এড়াতে)
+    await tx.paymentAllocation.deleteMany({ where: { docType: "PURCHASE", docId: id } });
   });
 
   revalidatePath("/purchases");

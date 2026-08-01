@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/guard";
-import { genReceiptNo, round2, withRetry } from "@/lib/utils";
+import { genReceiptNo, round2, withRetry, parseDateLocal } from "@/lib/utils";
 
 type LineItem = { itemId: string; quantity: number; rate: number };
 
@@ -59,7 +59,7 @@ export async function createSale(input: {
       const sale = await tx.sale.create({
         data: {
           receiptNo,
-          date: new Date(input.date),
+          date: parseDateLocal(input.date),
           customerId: input.customerId,
           subtotal,
           discount,
@@ -142,6 +142,8 @@ export async function deleteSale(id: string) {
     }
     await tx.sale.delete({ where: { id } });
     await tx.stockMovement.deleteMany({ where: { refType: "SALE", refId: id } });
+    // এই বিক্রয়ের পেমেন্ট-বরাদ্দ রেকর্ড পরিষ্কার (ভবিষ্যতে পেমেন্ট মুছলে ভুতুড়ে ফেরত এড়াতে)
+    await tx.paymentAllocation.deleteMany({ where: { docType: "SALE", docId: id } });
   });
 
   revalidatePath("/sales");

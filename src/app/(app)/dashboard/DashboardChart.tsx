@@ -36,9 +36,11 @@ export function DashboardChart({ data, isDemo = false }: Props) {
     return item;
   });
 
-  // Calculate totals
-  const totalSales = chartData.reduce((sum, item) => sum + item.sales, 0);
-  const totalPurchases = chartData.reduce((sum, item) => sum + item.purchases, 0);
+  // সারাংশ সবসময় আসল ডেটা থেকে — ডেমো মান শুধু চার্টের রেখা স্মুথ রাখতে,
+  // আর্থিক সংখ্যায় (মোট বিক্রয়/ক্রয়/মার্জিন) কখনো ঢুকবে না
+  const realData = data && data.length > 0 ? data : [];
+  const totalSales = realData.reduce((sum, item) => sum + item.sales, 0);
+  const totalPurchases = realData.reduce((sum, item) => sum + item.purchases, 0);
   const netProfit = totalSales - totalPurchases;
 
   return (

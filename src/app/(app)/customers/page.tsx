@@ -4,18 +4,18 @@ import { CustomerView } from "./CustomerView";
 export default async function CustomersPage() {
   const customers = await prisma.customer.findMany({
     include: {
-      sales: { select: { totalAmount: true, paidAmount: true } },
-      payments: { select: { amount: true } },
+      sales: { select: { totalAmount: true } },
     },
     orderBy: { name: "asc" },
   });
 
   const parsedCustomers = customers.map((c) => {
     const totalBill = c.sales.reduce((sum, s) => sum + Number(s.totalAmount), 0);
-    const salesPaidSum = c.sales.reduce((sum, s) => sum + Number(s.paidAmount), 0);
-    const standalonePaidSum = c.payments.reduce((sum, p) => sum + Number(p.amount), 0);
-    const totalPaid = salesPaidSum + standalonePaidSum;
-    const calculatedDue = Math.max(0, totalBill - totalPaid);
+    // সংরক্ষিত dueAmount-ই নির্ভরযোগ্য উৎস — allocatePayment প্রতিটি পেমেন্ট
+    // ইতিমধ্যে sale.paidAmount-এ বরাদ্দ করে, তাই আলাদা করে payments যোগ করলে
+    // একই টাকা দুইবার গণনা হয়ে বকেয়া কম দেখাত।
+    const dueAmount = Number(c.dueAmount);
+    const totalPaid = Math.max(0, totalBill - dueAmount);
 
     return {
       id: c.id,
@@ -23,7 +23,7 @@ export default async function CustomersPage() {
       name: c.name,
       phone: c.phone,
       address: c.address,
-      dueAmount: calculatedDue,
+      dueAmount,
       notes: c.notes,
       totalBill,
       totalPaid,

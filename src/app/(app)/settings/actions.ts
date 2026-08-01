@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/guard";
 import bcrypt from "bcryptjs";
-import { USER_ROLES } from "@/lib/constants";
+import { USER_ROLES, roleRank } from "@/lib/constants";
 
 export async function createUser(formData: FormData) {
   const session = await requireRole("OWNER", "MANAGER");
@@ -52,9 +52,4 @@ export async function toggleUserActive(id: string) {
   }
   await prisma.user.update({ where: { id }, data: { active: !u.active } });
   revalidatePath("/settings");
-}
-
-// রোল অনুসারে সিনিয়রিটি (OWNER সর্বোচ্চ)
-function roleRank(role: string): number {
-  return { OWNER: 4, MANAGER: 3, ACCOUNTANT: 2, OPERATOR: 1 }[role] ?? 0;
 }

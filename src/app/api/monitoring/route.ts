@@ -83,7 +83,8 @@ export async function POST(req: Request) {
       temperature: toNumberOrNull(temperature),
       vibration: toNumberOrNull(vibration),
       powerKw: toNumberOrNull(powerKw),
-      rpm: toNumberOrNull(rpm),
+      // স্কিমায় rpm Int — দশমিক এলে রাউন্ড করি, নাহলে Prisma ত্রুটি দেবে
+      rpm: toNumberOrNull(rpm) === null ? null : Math.round(toNumberOrNull(rpm)!),
       throughput: toNumberOrNull(throughput),
     },
   });

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/guard";
+import { parseDateLocal } from "@/lib/utils";
 import { UTILITY_CATEGORIES } from "@/lib/constants";
 
 export async function addUtilityExpense(formData: FormData) {
@@ -20,7 +21,7 @@ export async function addUtilityExpense(formData: FormData) {
     throw new Error("সঠিক টাকার পরিমাণ লিখুন");
   }
 
-  const date = customDate ? new Date(customDate) : new Date();
+  const date = parseDateLocal(customDate);
 
   await prisma.expense.create({
     data: {
@@ -40,8 +41,19 @@ export async function addUtilityExpense(formData: FormData) {
 
 export async function deleteUtilityExpense(id: string) {
   await requireUser();
-  await prisma.expense.delete({
-    where: { id },
+  await prisma.$transaction(async (tx) => {
+    // সুরক্ষা: খরচটি কর্মী-পেমেন্টের সাথে যুক্ত হলে সেই লেনদেন ও ব্যালেন্সও উল্টানো হবে
+    const linkedTxn = await tx.workforceTransaction.findFirst({
+      where: { linkedExpenseId: id },
+    });
+    if (linkedTxn) {
+      await tx.workforceMember.update({
+        where: { id: linkedTxn.workforceMemberId },
+        data: { balance: { increment: Number(linkedTxn.amount) } },
+      });
+      await tx.workforceTransaction.delete({ where: { id: linkedTxn.id } });
+    }
+    await tx.expense.delete({ where: { id } });
   });
 
   revalidatePath("/utilities");

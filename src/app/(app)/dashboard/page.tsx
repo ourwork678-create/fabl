@@ -31,10 +31,11 @@ export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
   const lang = await getLang();
 
-  const sixMonthsAgo = new Date();
-  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5);
-  sixMonthsAgo.setDate(1);
-  sixMonthsAgo.setHours(0, 0, 0, 0);
+  // চার্টে বিগত ৪ মাস + চলতি মাস দেখানো হয়, তাই ৫ মাসের ডেটাই আনা হয়
+  const chartWindowStart = new Date();
+  chartWindowStart.setMonth(chartWindowStart.getMonth() - 4);
+  chartWindowStart.setDate(1);
+  chartWindowStart.setHours(0, 0, 0, 0);
 
   const firstDayOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
 
@@ -65,6 +66,7 @@ export default async function DashboardPage() {
     prisma.sale.aggregate({ _sum: { totalAmount: true } }),
     prisma.inventoryItem.findMany({
       where: { currentStock: { lte: prisma.inventoryItem.fields.minStock }, minStock: { gt: 0 } },
+      orderBy: { currentStock: "asc" },
       take: 5,
     }),
     prisma.productionBatch.count({ where: { status: "RUNNING" } }),
@@ -73,11 +75,11 @@ export default async function DashboardPage() {
     prisma.supplier.aggregate({ _sum: { dueAmount: true } }),
     prisma.workforceTransaction.aggregate({ _sum: { amount: true }, where: { type: "PAYMENT" } }),
     prisma.sale.findMany({
-      where: { date: { gte: sixMonthsAgo } },
+      where: { date: { gte: chartWindowStart } },
       select: { date: true, totalAmount: true },
     }),
     prisma.purchase.findMany({
-      where: { date: { gte: sixMonthsAgo } },
+      where: { date: { gte: chartWindowStart } },
       select: { date: true, totalAmount: true },
     }),
     prisma.inventoryItem.aggregate({ _sum: { currentStock: true }, where: { type: "PADDY" } }),
@@ -85,12 +87,13 @@ export default async function DashboardPage() {
     prisma.inventoryItem.aggregate({ _sum: { currentStock: true }, where: { type: "BYPRODUCT" } }),
     prisma.saleItem.aggregate({ _sum: { amount: true }, where: { item: { type: "BYPRODUCT" } } }),
     prisma.productionBatch.findMany({
-      where: { date: { gte: firstDayOfMonth } },
+      where: { date: { gte: firstDayOfMonth }, status: { not: "CANCELLED" } },
       select: { status: true, recoveryRate: true },
     }),
     prisma.inventoryItem.aggregate({
       _sum: { currentStock: true },
       where: {
+        type: "BYPRODUCT",
         OR: [
           { name: { contains: "গুঁড়া" } },
           { name: { contains: "কুঁড়া" } },
@@ -101,6 +104,7 @@ export default async function DashboardPage() {
     prisma.inventoryItem.aggregate({
       _sum: { currentStock: true },
       where: {
+        type: "BYPRODUCT",
         OR: [
           { name: { contains: "খুদ" } },
           { name: { contains: "Broken" } },
@@ -169,7 +173,9 @@ export default async function DashboardPage() {
       t === "dryer" ||
       t === "polisher" ||
       t === "boiler" ||
-      t === "huller"
+      t === "huller" ||
+      t === "grader" ||
+      t === "whitener"
     );
   };
 
@@ -327,7 +333,7 @@ export default async function DashboardPage() {
             <Link href="/sales" className="flex items-center justify-between p-2 rounded-xl bg-white/80 hover:bg-white shadow-2xs border border-sky-100">
               <span className="flex items-center gap-2 text-slate-700">
                 <Store size={14} className="text-sky-600" />
-                {lang === "en" ? "Rice Sales" : "চাল বিক্রি"}
+                {lang === "en" ? "Total Sales" : "মোট বিক্রয়"}
               </span>
               <span className="font-bold text-sky-800">{formatTaka(totalSale, lang)}</span>
             </Link>

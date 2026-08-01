@@ -27,7 +27,8 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# prisma
+# prisma (লোকাল SQLite ডেটাবেস কখনোই কমিট হবে না)
+/prisma/dev.db*
 /prisma/migrations/dev.db*
 
 # vs code

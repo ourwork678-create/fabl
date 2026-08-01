@@ -11,8 +11,10 @@ export async function getValidSession() {
   const session = await getServerSession(authOptions);
   const id = (session?.user as any)?.id as string | undefined;
   if (!id) return null;
-  const u = await prisma.user.findUnique({ where: { id }, select: { active: true } });
+  const u = await prisma.user.findUnique({ where: { id }, select: { active: true, role: true } });
   if (!u || !u.active) return null;
+  // JWT-তে থাকা রোল পুরোনো হতে পারে (ডাউনগ্রেডের পর) — ডেটাবেসের সর্বশেষ রোলই কার্যকর
+  (session!.user as any).role = u.role;
   return session;
 }
 

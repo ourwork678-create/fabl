@@ -1,10 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/guard";
+import { parseDateLocal } from "@/lib/utils";
 import { EXPENSE_CATEGORIES } from "@/lib/constants";
+import { generateSalariesForMonth, markSalaryPaid } from "@/lib/salary";
 
 export async function addExpense(formData: FormData) {
   await requireUser();
@@ -31,33 +32,7 @@ export async function addExpense(formData: FormData) {
 
 export async function generateSalaries(formData: FormData) {
   await requireUser();
-  const month = formData.get("month") as string; // 2026-07
-  if (!month) throw new Error("মাস দিন");
-
-  // মালিকের বেতন হবে না
-  const users = await prisma.user.findMany({
-    where: { active: true, role: { not: "OWNER" }, monthlySalary: { gt: 0 } },
-  });
-  if (users.length === 0) throw new Error("কোনো বেতনভুক্ত কর্মকর্তা বা কর্মচারী নেই (মালিক ব্যতীত)");
-
-  for (const u of users) {
-    try {
-      await prisma.salary.create({
-        data: {
-          userId: u.id,
-          month,
-          amount: u.monthlySalary!,
-          bonus: 0,
-          deduction: 0,
-          netAmount: u.monthlySalary!,
-          status: "PENDING",
-        },
-      });
-    } catch (e) {
-      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") continue;
-      throw e;
-    }
-  }
+  await generateSalariesForMonth(formData.get("month") as string);
 
   revalidatePath("/reports");
   revalidatePath("/accounts");
@@ -66,13 +41,7 @@ export async function generateSalaries(formData: FormData) {
 
 export async function paySalary(id: string) {
   await requireUser();
-  const existing = await prisma.salary.findUnique({ where: { id } });
-  if (!existing) throw new Error("বেতন রেকর্ড পাওয়া যায়নি");
-  if (existing.status === "PAID") throw new Error("এই বেতন ইতিমধ্যে পরিশোধিত");
-  await prisma.salary.update({
-    where: { id },
-    data: { status: "PAID", paidDate: new Date() },
-  });
+  await markSalaryPaid(id);
 
   revalidatePath("/reports");
   revalidatePath("/accounts");
@@ -88,7 +57,7 @@ export async function addCashDeposit(formData: FormData) {
 
   if (!amount || amount <= 0) throw new Error("সঠিক টাকার পরিমাণ লিখুন");
 
-  const date = customDate ? new Date(customDate) : new Date();
+  const date = parseDateLocal(customDate);
 
   await prisma.expense.create({
     data: {
@@ -107,11 +76,24 @@ export async function addCashDeposit(formData: FormData) {
 
 export async function deleteExpense(id: string) {
   await requireUser();
-  await prisma.expense.delete({
-    where: { id },
+  await prisma.$transaction(async (tx) => {
+    // এই খরচ কোনো কর্মী-পেমেন্টের সাথে যুক্ত হলে সেই লেনদেন ও ব্যালেন্সও উল্টাতে হবে,
+    // নাহলে কর্মীর প্রদেয় ব্যালেন্স চিরতরে ভুল থেকে যেত
+    const linkedTxn = await tx.workforceTransaction.findFirst({
+      where: { linkedExpenseId: id },
+    });
+    if (linkedTxn) {
+      await tx.workforceMember.update({
+        where: { id: linkedTxn.workforceMemberId },
+        data: { balance: { increment: Number(linkedTxn.amount) } },
+      });
+      await tx.workforceTransaction.delete({ where: { id: linkedTxn.id } });
+    }
+    await tx.expense.delete({ where: { id } });
   });
 
   revalidatePath("/reports");
   revalidatePath("/accounts");
+  revalidatePath("/workforce");
   revalidatePath("/dashboard");
 }

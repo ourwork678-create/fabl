@@ -111,7 +111,7 @@ export function PurchaseForm({
               </select>
               <input
                 type="number"
-                step="1"
+                step="any"
                 placeholder="পরিমাণ (মণ)"
                 value={l.quantity || ""}
                 onChange={(e) => update(i, "quantity", e.target.value)}
@@ -119,7 +119,7 @@ export function PurchaseForm({
               />
               <input
                 type="number"
-                step="1"
+                step="any"
                 placeholder="দর (টাকা/মণ)"
                 value={l.rate || ""}
                 onChange={(e) => update(i, "rate", e.target.value)}
@@ -143,11 +143,11 @@ export function PurchaseForm({
         <div className="space-y-3">
           <div>
             <label className="label">{t("pur.form.discount")}</label>
-            <input name="discount" type="number" step="1" value={discount || ""} onChange={(e) => setDiscount(Number(e.target.value))} className="input" />
+            <input name="discount" type="number" step="any" value={discount || ""} onChange={(e) => setDiscount(Number(e.target.value))} className="input" />
           </div>
           <div>
             <label className="label">{t("pur.form.paidAmount")}</label>
-            <input name="paidAmount" type="number" step="1" value={paid || ""} onChange={(e) => setPaid(Number(e.target.value))} className="input" />
+            <input name="paidAmount" type="number" step="any" value={paid || ""} onChange={(e) => setPaid(Number(e.target.value))} className="input" />
           </div>
         </div>
         <div className="rounded-lg bg-gray-50 p-4 text-sm">

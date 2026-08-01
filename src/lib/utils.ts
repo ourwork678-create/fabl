@@ -56,6 +56,16 @@ export function formatDateTime(date: Date | string, lang: string = "bn"): string
   }).format(d);
 }
 
+// "yyyy-mm-dd" স্ট্রিং লোকাল সময়ে পার্স — new Date("yyyy-mm-dd") UTC মধ্যরাত ধরে,
+// ফলে UTC-এর পশ্চিমের টাইমজোনে তারিখ এক দিন পিছিয়ে দেখাত। ফাঁকা/অবৈধ হলে এখনকার সময়।
+export function parseDateLocal(dateStr?: string | null): Date {
+  if (dateStr) {
+    const [y, m, d] = dateStr.split("-").map(Number);
+    if (y && m) return new Date(y, m - 1, d || 1);
+  }
+  return new Date();
+}
+
 // স্মার্ট ও প্রফেশনাল মেমো নম্বর তৈরি (যেমন: SAL-2607-8492)
 // dateStr "yyyy-mm-dd" লোকাল সময়ে পার্স করি (UTC অফসেট এড়াতে)
 export function genReceiptNo(prefix: string, dateStrOrDate?: Date | string): string {

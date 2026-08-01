@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/guard";
 import { genReceiptNo, round2, withRetry } from "@/lib/utils";
@@ -49,7 +50,8 @@ export async function updateCustomer(id: string, formData: FormData) {
   const name = (formData.get("name") as string)?.trim();
   if (!name) throw new Error("নাম দেওয়া আবশ্যক");
 
-  const code = (formData.get("code") as string)?.trim() || null;
+  // কোড ফাঁকা রাখলে আগের কোড অক্ষত থাকবে (undefined = আপডেট নয়)
+  const code = (formData.get("code") as string)?.trim() || undefined;
   const phone = (formData.get("phone") as string)?.trim() || null;
   const address = (formData.get("address") as string)?.trim() || null;
   const notes = (formData.get("notes") as string)?.trim() || null;
@@ -72,9 +74,16 @@ export async function updateCustomer(id: string, formData: FormData) {
 
 export async function deleteCustomer(id: string) {
   await requireUser();
-  await prisma.customer.delete({
-    where: { id },
-  });
+  try {
+    await prisma.customer.delete({
+      where: { id },
+    });
+  } catch (e) {
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2003") {
+      throw new Error("এই কাস্টমারের বিক্রয়/পেমেন্ট রেকর্ড আছে, মুছা যাবে না");
+    }
+    throw e;
+  }
   revalidatePath("/customers");
   revalidatePath("/dashboard");
 }
@@ -121,7 +130,8 @@ export async function updateSupplier(id: string, formData: FormData) {
   const name = (formData.get("name") as string)?.trim();
   if (!name) throw new Error("নাম দেওয়া আবশ্যক");
 
-  const code = (formData.get("code") as string)?.trim() || null;
+  // কোড ফাঁকা রাখলে আগের কোড অক্ষত থাকবে (undefined = আপডেট নয়)
+  const code = (formData.get("code") as string)?.trim() || undefined;
   const phone = (formData.get("phone") as string)?.trim() || null;
   const address = (formData.get("address") as string)?.trim() || null;
   const notes = (formData.get("notes") as string)?.trim() || null;
@@ -144,9 +154,16 @@ export async function updateSupplier(id: string, formData: FormData) {
 
 export async function deleteSupplier(id: string) {
   await requireUser();
-  await prisma.supplier.delete({
-    where: { id },
-  });
+  try {
+    await prisma.supplier.delete({
+      where: { id },
+    });
+  } catch (e) {
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2003") {
+      throw new Error("এই সাপ্লায়ারের ক্রয়/পেমেন্ট রেকর্ড আছে, মুছা যাবে না");
+    }
+    throw e;
+  }
   revalidatePath("/suppliers");
   revalidatePath("/dashboard");
 }
@@ -154,10 +171,12 @@ export async function deleteSupplier(id: string) {
 // ===================== PAYMENT ACTIONS =====================
 
 // FIFO: পেমেন্ট পার্টির সবচেয়ে পুরোনো বকেয়া বিক্রয়/ক্রয়ে বরাদ্দ (status হাল রাখে)
+// প্রতিটি বরাদ্দ PaymentAllocation-এ রেকর্ড হয়, যাতে পেমেন্ট মুছলে ঠিক সেই মেমো থেকেই ফেরত যায়।
 async function allocatePayment(
   tx: Tx,
   partyType: "CUSTOMER" | "SUPPLIER",
   partyId: string,
+  paymentId: string,
   amount: number
 ) {
   let remaining = round2(amount);
@@ -178,46 +197,46 @@ async function allocatePayment(
     };
     if (partyType === "CUSTOMER") await tx.sale.update({ where: { id: d.id }, data });
     else await tx.purchase.update({ where: { id: d.id }, data });
+    await tx.paymentAllocation.create({
+      data: {
+        paymentId,
+        docType: partyType === "CUSTOMER" ? "SALE" : "PURCHASE",
+        docId: d.id,
+        amount: applied,
+      },
+    });
     remaining = round2(remaining - applied);
   }
 }
 
-// পেমেন্ট মুছলে বরাদ্দকৃত অংশ ফেরত (LIFO)
-// ফেরত দেওয়া (restore) পরিমাণ রিটার্ন করে — যদি কোনো সেল/পারচেজ না থাকে (ডিলিট হয়ে গেছে),
-// কিছুই ফেরত হয় না, তাই পার্টির বকেয়াও বাড়ানো যাবে না (phantom due এড়াতে)।
-async function reversePayment(
-  tx: Tx,
-  partyType: "CUSTOMER" | "SUPPLIER",
-  partyId: string,
-  amount: number
-): Promise<number> {
-  let remaining = round2(amount);
+// পেমেন্ট মুছলে PaymentAllocation অনুযায়ী ঠিক সেই মেমোগুলো থেকেই বরাদ্দ ফেরত।
+// ফেরত দেওয়া (restore) পরিমাণ রিটার্ন করে — মেমো ইতিমধ্যে মুছে গেলে সেই অংশ ফেরত হয় না
+// (phantom due এড়াতে)। পুরোনো পেমেন্টে (বরাদ্দ রেকর্ড নেই) কিছুই ফেরত হয় না — নিরাপদ ডিফল্ট।
+async function reversePayment(tx: Tx, paymentId: string): Promise<number> {
   let restored = 0;
-  const where = {
-    status: { in: ["PARTIAL", "PAID"] },
-    paidAmount: { gt: 0 },
-  };
-  const docs =
-    partyType === "CUSTOMER"
-      ? await tx.sale.findMany({ where: { ...where, customerId: partyId }, orderBy: { date: "desc" } })
-      : await tx.purchase.findMany({ where: { ...where, supplierId: partyId }, orderBy: { date: "desc" } });
-  for (const d of docs) {
-    if (remaining <= 0) break;
-    const paid = Number(d.paidAmount);
-    if (paid <= 0) continue;
-    const restore = Math.min(remaining, paid);
-    const newPaid = round2(paid - restore);
-    const newDue = round2(Number(d.dueAmount) + restore);
+  const allocations = await tx.paymentAllocation.findMany({ where: { paymentId } });
+  for (const a of allocations) {
+    const restore = Number(a.amount);
+    const doc =
+      a.docType === "SALE"
+        ? await tx.sale.findUnique({ where: { id: a.docId } })
+        : await tx.purchase.findUnique({ where: { id: a.docId } });
+    if (!doc) continue; // মেমো মুছে গেছে — এই অংশ ফেরত হবে না
+    const paid = Number(doc.paidAmount);
+    const actualRestore = Math.min(restore, paid); // সুরক্ষা: paid-এর বেশি ফেরত নয়
+    if (actualRestore <= 0) continue;
+    const newPaid = round2(paid - actualRestore);
+    const newDue = round2(Number(doc.dueAmount) + actualRestore);
     const status = (newPaid <= 0 ? "PENDING" : newDue > 0 ? "PARTIAL" : "PAID") as
       | "PENDING"
       | "PARTIAL"
       | "PAID";
     const data = { paidAmount: newPaid, dueAmount: newDue, status };
-    if (partyType === "CUSTOMER") await tx.sale.update({ where: { id: d.id }, data });
-    else await tx.purchase.update({ where: { id: d.id }, data });
-    remaining = round2(remaining - restore);
-    restored = round2(restored + restore);
+    if (a.docType === "SALE") await tx.sale.update({ where: { id: doc.id }, data });
+    else await tx.purchase.update({ where: { id: doc.id }, data });
+    restored = round2(restored + actualRestore);
   }
+  await tx.paymentAllocation.deleteMany({ where: { paymentId } });
   return restored;
 }
 
@@ -251,7 +270,7 @@ export async function recordPayment(input: {
       throw new Error(`বকেয়ার চেয়ে বেশি পরিশোধ করা যাবে না (বকেয়া ${currentDue})`);
     }
 
-    await tx.payment.create({
+    const payment = await tx.payment.create({
       data: {
         refNo,
         partyType: input.partyType,
@@ -264,19 +283,22 @@ export async function recordPayment(input: {
       },
     });
 
-    if (input.partyType === "CUSTOMER") {
-      await tx.customer.update({
-        where: { id: input.partyId },
-        data: { dueAmount: { decrement: input.amount } },
-      });
-    } else {
-      await tx.supplier.update({
-        where: { id: input.partyId },
-        data: { dueAmount: { decrement: input.amount } },
-      });
+    // শর্তসাপেক্ষ ডিক্রিমেন্ট — একই সাথে দুটি পেমেন্ট এলেও বকেয়া ঋণাত্মক হবে না
+    const updated =
+      input.partyType === "CUSTOMER"
+        ? await tx.customer.updateMany({
+            where: { id: input.partyId, dueAmount: { gte: input.amount } },
+            data: { dueAmount: { decrement: input.amount } },
+          })
+        : await tx.supplier.updateMany({
+            where: { id: input.partyId, dueAmount: { gte: input.amount } },
+            data: { dueAmount: { decrement: input.amount } },
+          });
+    if (updated.count === 0) {
+      throw new Error("বকেয়ার চেয়ে বেশি পরিশোধ করা যাবে না (বকেয়া ইতিমধ্যে পরিবর্তিত হয়েছে)");
     }
 
-    await allocatePayment(tx, input.partyType, input.partyId, input.amount);
+    await allocatePayment(tx, input.partyType, input.partyId, payment.id, input.amount);
   });
   });
 
@@ -303,7 +325,7 @@ export async function deletePayment(id: string) {
         (payment.partyType === "SUPPLIER" && payment.direction === "PAID");
       if (valid) {
         // শুধু যে অংশ আসলে ফেরত বরাদ্দ হয়েছে সেটাই বকেয়ায় যোগ হবে (ডিলিট হওয়া সেল/পারচেজের ক্ষেত্রে ০)
-        const restored = await reversePayment(tx, payment.partyType as "CUSTOMER" | "SUPPLIER", partyId, Number(payment.amount));
+        const restored = await reversePayment(tx, payment.id);
         if (restored > 0) {
           if (payment.partyType === "CUSTOMER") {
             await tx.customer.update({
@@ -320,6 +342,8 @@ export async function deletePayment(id: string) {
       }
     }
 
+    // বরাদ্দ রেকর্ড পরিষ্কার (reversePayment না চললেও এতিম রেকর্ড না থাকে)
+    await tx.paymentAllocation.deleteMany({ where: { paymentId: id } });
     await tx.payment.delete({ where: { id } });
   });
 

@@ -17,16 +17,33 @@ export async function createInventoryItem(formData: FormData) {
 
   if (!name) throw new Error("নাম দিন");
   if (!ITEM_TYPES.includes(type as any)) throw new Error("সঠিক ধরন দিন");
+  if (currentStock < 0) throw new Error("প্রারম্ভিক স্টক ঋণাত্মক হতে পারবে না");
+  if (minStock < 0) throw new Error("ন্যূনতম স্টক ঋণাত্মক হতে পারবে না");
 
-  await prisma.inventoryItem.create({
-    data: {
-      name,
-      type,
-      unit,
-      currentStock,
-      minStock,
-      saleRate,
-    },
+  await prisma.$transaction(async (tx) => {
+    const item = await tx.inventoryItem.create({
+      data: {
+        name,
+        type,
+        unit,
+        currentStock,
+        minStock,
+        saleRate,
+      },
+    });
+    // প্রারম্ভিক স্টক থাকলে খতিয়ানেও এন্ট্রি — নাহলে মুভমেন্টের যোগফল স্টকের সাথে মিলত না
+    if (currentStock > 0) {
+      await tx.stockMovement.create({
+        data: {
+          itemId: item.id,
+          direction: "IN",
+          quantity: currentStock,
+          balance: currentStock,
+          refType: "ADJUSTMENT",
+          note: "প্রারম্ভিক স্টক",
+        },
+      });
+    }
   });
 
   revalidatePath("/inventory");

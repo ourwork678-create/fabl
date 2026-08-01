@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/guard";
-import { genReceiptNo, round2, withRetry, todayLocalISO } from "@/lib/utils";
+import { genReceiptNo, round2, withRetry, todayLocalISO, parseDateLocal } from "@/lib/utils";
 
 export async function createByproductSale(formData: FormData) {
   await requireUser();
@@ -36,17 +36,32 @@ export async function createByproductSale(formData: FormData) {
     targetCustomerId = defaultCust.id;
   }
 
-  // নির্দিষ্ট নামের BYPRODUCT আইটেম খুঁজি (substring ম্যাচ এড়িয়ে ভুল আইটেম থেকে স্টক কাটা)
-  let existingItem = await prisma.inventoryItem.findFirst({
-    where: { name: byproductName, type: "BYPRODUCT" },
-  });
+  // প্রথমে হুবহু নাম মিলিয়ে খুঁজি; না পেলে প্রোডাকশন ফর্মের মতো সমার্থক নামে (substring) খুঁজি —
+  // নাহলে প্রোডাকশনে "গুঁড়া (মোটা)" নামে স্টক জমত আর বিক্রিতে "গুঁড়া" নামে শূন্য-স্টক আইটেম তৈরি হতো।
+  // বাংলা ইউনিকোডে ড়/ঢ়-এর precomposed ও decomposed দুই রূপ আছে বলে ম্যাচিং JS-এ
+  // normalize("NFC") করে করা হয় (SQL contains বাইট-ভিত্তিক, ভিন্ন রূপ মিলাতে পারে না)।
+  const norm = (s: string) => s.normalize("NFC");
+  const synonyms: Record<string, string[]> = {
+    [norm("গুঁড়া")]: ["গুঁড়া", "কুঁড়া", "bran"].map(norm),
+    [norm("খুদ")]: ["খুদ", "broken"].map(norm),
+    [norm("তুষ")]: ["তুষ", "husk"].map(norm),
+  };
+  const target = norm(byproductName);
+  const allByproducts = await prisma.inventoryItem.findMany({ where: { type: "BYPRODUCT" } });
+  let existingItem =
+    allByproducts.find((i) => norm(i.name) === target) ??
+    allByproducts.find((i) => {
+      const nameLc = norm(i.name).toLowerCase();
+      return (synonyms[target] ?? [target]).some((k) => nameLc.includes(k.toLowerCase()));
+    }) ?? null;
 
   if (!existingItem) {
     existingItem = await prisma.inventoryItem.create({
       data: {
         name: byproductName,
         type: "BYPRODUCT",
-        unit: "বস্তা",
+        // প্রোডাকশন ফর্মের এককের সাথে সামঞ্জস্য: খুদ কেজিতে, গুঁড়া/তুষ বস্তায়
+        unit: target === norm("খুদ") ? "কেজি" : "বস্তা",
         currentStock: 0,
       },
     });
@@ -72,7 +87,7 @@ export async function createByproductSale(formData: FormData) {
     const sale = await tx.sale.create({
       data: {
         receiptNo,
-        date: new Date(dateStr),
+        date: parseDateLocal(dateStr),
         customerId: targetCustomerId,
         subtotal,
         discount: 0,

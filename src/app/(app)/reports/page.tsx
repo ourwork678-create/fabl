@@ -27,44 +27,50 @@ export default async function ReportsPage({
   // ডিফল্টভাবে চলতি মাসের ১ম দিন থেকে আজ পর্যন্ত
   const now = new Date();
   const defaultStart = new Date(now.getFullYear(), now.getMonth(), 1);
-  const defaultEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+  const defaultEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
   const startDate = searchParams.start ? new Date(searchParams.start + "T00:00:00") : defaultStart;
-  const endDate = searchParams.end ? new Date(searchParams.end + "T23:59:59") : defaultEnd;
+  const endDate = searchParams.end ? new Date(searchParams.end + "T00:00:00") : defaultEnd;
+  // half-open রেঞ্জ [start, end+1day) — দিনের শেষ মুহূর্ত পর্যন্ত সব রেকর্ড ধরা পড়ে
+  const endExclusive = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate() + 1);
 
   const startStr = formatDateInput(startDate);
   const endStr = formatDateInput(endDate);
 
   const [sales, purchases, expenses, salaries, workerPayments, recentExpenses] = await Promise.all([
     prisma.sale.findMany({
-      where: { date: { gte: startDate, lte: endDate } },
+      where: { date: { gte: startDate, lt: endExclusive }, status: { not: "CANCELLED" } },
       include: { customer: true },
       orderBy: { date: "desc" },
     }),
     prisma.purchase.findMany({
-      where: { date: { gte: startDate, lte: endDate } },
+      where: { date: { gte: startDate, lt: endExclusive }, status: { not: "CANCELLED" } },
       include: { supplier: true },
       orderBy: { date: "desc" },
     }),
     prisma.expense.findMany({
-      where: { date: { gte: startDate, lte: endDate } },
+      where: { date: { gte: startDate, lt: endExclusive } },
       orderBy: { date: "desc" },
     }),
     prisma.salary.findMany({
-      where: { paidDate: { gte: startDate, lte: endDate }, status: "PAID" },
+      where: { paidDate: { gte: startDate, lt: endExclusive }, status: "PAID" },
       include: { user: true },
       orderBy: { paidDate: "desc" },
     }),
     prisma.workforceTransaction.findMany({
-      where: { date: { gte: startDate, lte: endDate }, type: "PAYMENT" },
+      where: { date: { gte: startDate, lt: endExclusive }, type: "PAYMENT" },
       include: { workforceMember: true },
       orderBy: { date: "desc" },
     }),
     prisma.expense.findMany({ orderBy: { date: "desc" }, take: 10 }),
   ]);
 
-  // ক্যাশ জমা বাদ, শ্রম ক্যাটাগরিও বাদ (শ্রম খরচ workerPayments-এ কাউন্ট হয়, তাই ডাবল কাউন্ট এড়াতে)
-  const generalExpenses = expenses.filter((e) => e.category !== "ক্যাশ জমা" && e.category !== "শ্রম");
+  // ক্যাশ জমা বাদ; কর্মী-পেমেন্টের সাথে যুক্ত (linked) খরচও বাদ (workerPayments-এ গণনা হয়, ডাবল কাউন্ট এড়াতে)।
+  // ম্যানুয়ালি দেওয়া "শ্রম" ক্যাটাগরির খরচ সাধারণ খরচেই গণনা হবে।
+  const linkedExpenseIds = new Set(
+    workerPayments.map((w) => w.linkedExpenseId).filter(Boolean)
+  );
+  const generalExpenses = expenses.filter((e) => e.category !== "ক্যাশ জমা" && !linkedExpenseIds.has(e.id));
   const cashDepositExpenses = expenses.filter((e) => e.category === "ক্যাশ জমা");
 
   const totalSales = sales.reduce((sum, s) => sum + Number(s.totalAmount), 0);
@@ -74,11 +80,19 @@ export default async function ReportsPage({
   const totalWorkerPayments = workerPayments.reduce((sum, w) => sum + Number(w.amount), 0);
   const totalCashDeposited = cashDepositExpenses.reduce((sum, c) => sum + Number(c.amount), 0);
 
+  // নগদ প্রাপ্তি/প্রদান — বাকির অপরিশোধিত অংশ বাদ, শুধু আসলে পরিশোধিত টাকা (ক্যাশ হিসাবের জন্য)
+  const totalSalesCash = sales.reduce((sum, s) => sum + Number(s.paidAmount), 0);
+  const totalPurchasesCash = purchases.reduce((sum, p) => sum + Number(p.paidAmount), 0);
+
   // নিট আয়/লাভ = বিক্রয় - (ক্রয় + সাধারণ খরচ + বেতন + কর্মী মজুরি প্রদান)
   const netProfit = totalSales - (totalPurchases + totalGeneralExpenses + totalSalaries + totalWorkerPayments);
   
-  // ক্যাশ (হাতে থাকা নিট ক্যাশ ফান্ড) = নিট আয় - ক্যাশ জমাদান
-  const netCashBalance = netProfit - totalCashDeposited;
+  // ক্যাশ (হাতে থাকা নিট ক্যাশ) = নগদ প্রাপ্তি − নগদ প্রদান − ক্যাশ জমাদান
+  // বাকির অপরিশোধিত অংশ এখানে ধরা হয় না; পরে পরিশোধ হলে paidAmount-এ যুক্ত হয়ে হিসাবে আসে।
+  const netCashBalance =
+    totalSalesCash -
+    (totalPurchasesCash + totalGeneralExpenses + totalSalaries + totalWorkerPayments) -
+    totalCashDeposited;
 
   // স্যালারি এবং কর্মী মজুরি প্রদান একত্র করে খরচের তালিকা তৈরি
   const otherCosts = [
@@ -162,11 +176,11 @@ export default async function ReportsPage({
 
         {/* ক্যাশ (নিট ক্যাশ তহবিল) কার্ড */}
         <Card className={`bg-gradient-to-br ${netCashBalance >= 0 ? "from-brand-50/80 to-teal-50/40 border-brand-200" : "from-red-50/80 to-orange-50/40 border-red-200"} shadow-2xs`}>
-          <p className="text-xs font-semibold text-brand-900">{isEn ? "Cash (Net Cash Fund)" : "ক্যাশ (নিট ক্যাশ তহবিল)"}</p>
+          <p className="text-xs font-semibold text-brand-900">{isEn ? "Net Fund (Cash+Bank)" : "নিট তহবিল (নগদ+ব্যাংক)"}</p>
           <p className={`text-lg font-bold mt-1 ${netCashBalance >= 0 ? "text-brand-700" : "text-red-600"}`}>
             {formatTaka(netCashBalance, lang)}
           </p>
-          <span className="text-[10px] text-brand-600 font-mono">({isEn ? "Cash in Hand" : "হাতে থাকা ক্যাশ"})</span>
+          <span className="text-[10px] text-brand-600 font-mono">({isEn ? "After all payouts" : "সব খরচ বাদে"})</span>
         </Card>
 
         {/* ক্যাশ জমাদান (ব্যাংকে/তহবিলে) কার্ড */}

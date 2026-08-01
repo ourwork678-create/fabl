@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/guard";
-import { genReceiptNo, round2, withRetry } from "@/lib/utils";
+import { genReceiptNo, round2, withRetry, parseDateLocal } from "@/lib/utils";
 import { ITEM_TYPES } from "@/lib/constants";
 
 export async function createBatch(input: {
@@ -28,22 +28,33 @@ export async function createBatch(input: {
     const batchNo = genReceiptNo("BAT", input.date);
 
   await prisma.$transaction(async (tx) => {
-    // স্টক চেক ইনপুটের জন্য
+    // একই আইটেম একাধিক লাইনে থাকলে পরিমাণ একত্রিত করা (নাহলে প্রতি লাইনে আলাদা চেক
+    // পাস করে গিয়ে মোট ডিক্রিমেন্টে স্টক ঋণাত্মক হয়ে যেত)
+    const needByItem = new Map<string, number>();
     for (const it of input.inputs) {
-      const item = await tx.inventoryItem.findUniqueOrThrow({ where: { id: it.itemId } });
-      if (Number(item.currentStock) < it.quantity) {
-        throw new Error(`${item.name} স্টক পর্যাপ্ত নয়`);
+      needByItem.set(it.itemId, round2((needByItem.get(it.itemId) || 0) + it.quantity));
+    }
+    const outByItem = new Map<string, number>();
+    for (const it of validOutputs) {
+      outByItem.set(it.itemId, round2((outByItem.get(it.itemId) || 0) + it.quantity));
+    }
+
+    // স্টক চেক ইনপুটের জন্য (একত্রিত পরিমাণে)
+    for (const [itemId, need] of needByItem) {
+      const item = await tx.inventoryItem.findUniqueOrThrow({ where: { id: itemId } });
+      if (Number(item.currentStock) < need) {
+        throw new Error(`${item.name} স্টক পর্যাপ্ত নয় (আছে ${item.currentStock}, দরকার ${need})`);
       }
     }
 
     const batch = await tx.productionBatch.create({
       data: {
         batchNo,
-        date: new Date(input.date),
+        date: parseDateLocal(input.date),
         machineId: input.machineId || null,
         operatorId: input.operatorId || session.user.id,
-        startedAt: new Date(input.date),
-        endedAt: new Date(input.date),
+        startedAt: parseDateLocal(input.date),
+        endedAt: parseDateLocal(input.date),
         status: "COMPLETED",
         recoveryRate: input.recoveryRate ?? null,
         notes: input.notes || null,
@@ -52,23 +63,23 @@ export async function createBatch(input: {
       },
     });
 
-    // ইনপুট স্টক কমানো (ধান OUT) — অ্যাটমিক
-    for (const it of input.inputs) {
-      const item = await tx.inventoryItem.findUniqueOrThrow({ where: { id: it.itemId } });
-      const newBal = round2(Number(item.currentStock) - it.quantity);
-      await tx.inventoryItem.update({ where: { id: it.itemId }, data: { currentStock: { decrement: it.quantity } } });
+    // ইনপুট স্টক কমানো (ধান OUT) — একত্রিত পরিমাণে, অ্যাটমিক
+    for (const [itemId, qty] of needByItem) {
+      const item = await tx.inventoryItem.findUniqueOrThrow({ where: { id: itemId } });
+      const newBal = round2(Number(item.currentStock) - qty);
+      await tx.inventoryItem.update({ where: { id: itemId }, data: { currentStock: { decrement: qty } } });
       await tx.stockMovement.create({
-        data: { itemId: it.itemId, direction: "OUT", quantity: it.quantity, balance: newBal, refType: "PRODUCTION", refId: batch.id },
+        data: { itemId, direction: "OUT", quantity: qty, balance: newBal, refType: "PRODUCTION", refId: batch.id },
       });
     }
 
-    // আউটপুট স্টক বাড়ানো (চাল/উপজাত IN) — অ্যাটমিক
-    for (const it of validOutputs) {
-      const item = await tx.inventoryItem.findUniqueOrThrow({ where: { id: it.itemId } });
-      const newBal = round2(Number(item.currentStock) + it.quantity);
-      await tx.inventoryItem.update({ where: { id: it.itemId }, data: { currentStock: { increment: it.quantity } } });
+    // আউটপুট স্টক বাড়ানো (চাল/উপজাত IN) — একত্রিত পরিমাণে, অ্যাটমিক
+    for (const [itemId, qty] of outByItem) {
+      const item = await tx.inventoryItem.findUniqueOrThrow({ where: { id: itemId } });
+      const newBal = round2(Number(item.currentStock) + qty);
+      await tx.inventoryItem.update({ where: { id: itemId }, data: { currentStock: { increment: qty } } });
       await tx.stockMovement.create({
-        data: { itemId: it.itemId, direction: "IN", quantity: it.quantity, balance: newBal, refType: "PRODUCTION", refId: batch.id },
+        data: { itemId, direction: "IN", quantity: qty, balance: newBal, refType: "PRODUCTION", refId: batch.id },
       });
     }
   });
@@ -97,6 +108,12 @@ export async function deleteBatch(id: string) {
     }
     for (const it of batch.outputs) {
       const item = await tx.inventoryItem.findUniqueOrThrow({ where: { id: it.itemId } });
+      // আউটপুট (চাল/উপজাত) ইতিমধ্যে বিক্রি হয়ে গেলে স্টক ঋণাত্মক হতে দেওয়া যাবে না
+      if (Number(item.currentStock) < Number(it.quantity)) {
+        throw new Error(
+          `${item.name} এর উৎপাদিত স্টক ইতিমধ্যে ব্যবহৃত/বিক্রি হয়েছে (আছে ${item.currentStock}), এই ব্যাচ মুছা যাবে না`
+        );
+      }
       const newBal = round2(Number(item.currentStock) - Number(it.quantity));
       await tx.inventoryItem.update({ where: { id: it.itemId }, data: { currentStock: { decrement: Number(it.quantity) } } });
       await tx.stockMovement.create({
@@ -104,7 +121,8 @@ export async function deleteBatch(id: string) {
       });
     }
     await tx.productionBatch.delete({ where: { id } });
-    await tx.stockMovement.deleteMany({ where: { refType: "PRODUCTION", refId: id } });
+    // মূল মুভমেন্ট মুছি না — রিভার্সাল এন্ট্রি তৈরি হয়েছে, দুটো মিলে খতিয়ানের যোগফল শূন্য থাকে।
+    // মূলগুলো মুছলে এতিম রিভার্সাল এন্ট্রি খতিয়ানে দুইবার গণনা ঘটাত।
   });
   revalidatePath("/production");
   revalidatePath("/inventory");
@@ -116,7 +134,8 @@ export async function quickCreateInventoryItem(formData: FormData) {
   const name = (formData.get("name") as string)?.trim();
   const type = (formData.get("type") as string) || "RICE"; // PADDY | RICE | BYPRODUCT
   if (!ITEM_TYPES.includes(type as any)) throw new Error("সঠিক আইটেম টাইপ দিন");
-  const unit = type === "PADDY" ? "মণ" : "কেজি";
+  // ধান = মণ, উপজাত = বস্তা (byproducts পেজের সাথে সামঞ্জস্য), চাল = কেজি
+  const unit = type === "PADDY" ? "মণ" : type === "BYPRODUCT" ? "বস্তা" : "কেজি";
 
   if (!name) throw new Error("আইটেমের নাম দেওয়া আবশ্যক");
 
