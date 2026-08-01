@@ -37,7 +37,7 @@ async function main() {
   const owner = await prisma.user.create({
     data: {
       name: "মালিক (অ্যাডমিন)",
-      email: "owner@niceplr.bd",
+      email: "owner@nishatautoricemill.com",
       phone: "01700000000",
       designation: "কারখানা স্বত্বাধিকারী",
       passwordHash: password,
@@ -49,7 +49,7 @@ async function main() {
   const manager = await prisma.user.create({
     data: {
       name: "রফিকুল ইসলাম",
-      email: "manager@niceplr.bd",
+      email: "manager@nishatautoricemill.com",
       phone: "01711000001",
       designation: "জেনারেল ম্যানেজার",
       passwordHash: await bcrypt.hash("manager123", 10),
@@ -61,7 +61,7 @@ async function main() {
   const operator = await prisma.user.create({
     data: {
       name: "মোঃ শাহীন",
-      email: "operator@niceplr.bd",
+      email: "operator@nishatautoricemill.com",
       phone: "01711000002",
       designation: "মেইন মিল অপারেটর",
       passwordHash: await bcrypt.hash("operator123", 10),
@@ -464,7 +464,7 @@ async function main() {
   }
 
   console.log("🎉 অভিনন্দিত! ডাটাবেজ সম্পূর্ণ রিসেট করে ফ্রেশ ও বাস্তবসম্মত ডেটা দিয়ে সিমুলেট করা হয়েছে!");
-  console.log("🔑 অ্যাডমিন লগইন: owner@niceplr.bd / admin123");
+  console.log("🔑 অ্যাডমিন লগইন: owner@nishatautoricemill.com / admin123");
 }
 
 main()

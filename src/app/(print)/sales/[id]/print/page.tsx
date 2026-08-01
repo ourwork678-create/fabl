@@ -52,7 +52,7 @@ export default async function SalePrintPage({
             নিশাত অটো রাইস মিল
           </h1>
           <p className="text-sm font-medium text-gray-600 mt-1">
-            উন্নত মানের চাল ও তুষ বিক্রেতা
+            উন্নত মানের চাল ও খুদ বিক্রেতা
           </p>
           <p className="text-xs text-gray-500 mt-0.5">
             হাবু তাঁতীপাড়া, গজঘণ্টা, রংপুর। মোবাইলঃ 01700000000
