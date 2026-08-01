@@ -6,6 +6,14 @@ html {
   scroll-behavior: smooth;
 }
 
+/* বড় স্ক্রিনে (>1280px) সব ফন্ট ১০% বড় — Tailwind-এর সাইজগুলো rem-ভিত্তিক
+   বলে রুট ফন্ট-সাইজ বাড়ালেই সব টেক্সট সমানুপাতে বাড়ে। প্রিন্টে প্রযোজ্য নয়। */
+@media screen and (min-width: 1281px) {
+  html {
+    font-size: 110%;
+  }
+}
+
 /* ১. ইংলিশ ভার্সনে বডি ফন্ট (Hind Siliguri) */
 html[lang="en"] body {
   font-family: var(--font-bangla), "Hind Siliguri", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
