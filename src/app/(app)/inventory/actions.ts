@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/guard";
+import { round2 } from "@/lib/utils";
 import { ITEM_TYPES } from "@/lib/constants";
 import { Prisma } from "@prisma/client";
 
@@ -64,13 +65,14 @@ export async function adjustStock(itemId: string, formData: FormData) {
     if (direction === "OUT" && Number(item.currentStock) < quantity) {
       throw new Error("স্টক পর্যাপ্ত নয়");
     }
-    const delta = direction === "IN" ? quantity : -quantity;
-    const newBalance = Number(item.currentStock) + delta;
-
-    await tx.inventoryItem.update({
-      where: { id: itemId },
-      data: { currentStock: { increment: delta } },
-    });
+    if (direction === "OUT") {
+      const guarded = await tx.inventoryItem.updateMany({ where: { id: itemId, currentStock: { gte: quantity } }, data: { currentStock: { decrement: quantity } } });
+      if (guarded.count === 0) throw new Error("স্টক পর্যাপ্ত নয় (একই সময়ে অন্য লেনদেনে স্টক বদলে গেছে)");
+    } else {
+      await tx.inventoryItem.update({ where: { id: itemId }, data: { currentStock: { increment: quantity } } });
+    }
+    const after = await tx.inventoryItem.findUniqueOrThrow({ where: { id: itemId } });
+    const newBalance = round2(Number(after.currentStock));
 
     await tx.stockMovement.create({
       data: {

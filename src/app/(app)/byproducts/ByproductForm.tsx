@@ -22,6 +22,12 @@ export function ByproductForm({
   const [rate, setRate] = useState<number | "">(850);
   const [paidAmount, setPaidAmount] = useState<number | "">(8500);
 
+  // নির্বাচিত উপজাত অনুযায়ী একক দেখানো (খুদ কেজিতে, গুঁড়া/তুষ বস্তায়)
+  const [selectedByproduct, setSelectedByproduct] = useState("");
+  const isKhud = selectedByproduct.normalize("NFC") === "খুদ".normalize("NFC");
+  const bpUnitBn = isKhud ? "কেজি" : "বস্তা";
+  const bpUnitEn = isKhud ? "Kg" : "Bag";
+
   const isEn = lang === "en";
 
   const numQty = Number(quantity) || 0;
@@ -80,7 +86,7 @@ export function ByproductForm({
         {/* উপজাত নির্বাচন */}
         <div>
           <label className="label">{isEn ? "Select Byproduct" : "উপজাতের ধরণ"}</label>
-          <select name="byproductName" className="input font-semibold text-gray-900" required defaultValue="গুঁড়া">
+          <select name="byproductName" className="input font-semibold text-gray-900" onChange={(e) => setSelectedByproduct(e.target.value)} required defaultValue="গুঁড়া">
             <option value="গুঁড়া">{isEn ? "Rice Bran (গুঁড়া)" : "গুঁড়া"}</option>
             <option value="খুদ">{isEn ? "Broken Rice (খুদ)" : "খুদ"}</option>
             <option value="তুষ">{isEn ? "Husk (তুষ)" : "তুষ"}</option>
@@ -102,7 +108,7 @@ export function ByproductForm({
 
         {/* বিক্রয়ের পরিমাণ (বস্তা / মণ) */}
         <div>
-          <label className="label">{isEn ? "Quantity (Bags/Maund)" : "বিক্রয়ের পরিমাণ (বস্তা/মণ)"}</label>
+          <label className="label">{isEn ? `Quantity (${bpUnitEn})` : `বিক্রয়ের পরিমাণ (${bpUnitBn})`}</label>
           <input
             type="number"
             step="any"
@@ -117,7 +123,7 @@ export function ByproductForm({
 
         {/* দর / বস্তা প্রতি দাম */}
         <div>
-          <label className="label">{isEn ? "Rate (Tk / Bag)" : "দর (টাকা প্রতি বস্তা/মণ)"}</label>
+          <label className="label">{isEn ? `Rate (Tk / ${bpUnitEn})` : `দর (টাকা প্রতি ${bpUnitBn})`}</label>
           <input
             type="number"
             step="any"

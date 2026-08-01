@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
 import { prisma } from "@/lib/prisma";
-import { authOptions } from "@/lib/auth";
+import { getValidSession } from "@/lib/guard";
 import { MACHINE_STATUSES } from "@/lib/constants";
 
 const hasValidKey = (req: Request) => {
@@ -12,7 +11,7 @@ const hasValidKey = (req: Request) => {
 
 // সর্বশেষ মেশিন লগ ও স্ট্যাটাস (অথেনটিকেটেড ইউজার)
 export async function GET() {
-  const session = await getServerSession(authOptions);
+  const session = await getValidSession();
   if (!session?.user) {
     return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
   }
@@ -44,7 +43,7 @@ const toNumberOrNull = (v: unknown): number | null => {
 // সেন্সর ডেটা পুশ (IoT ডিভাইস থেকে) — API কী বা সেশন প্রয়োজন
 export async function POST(req: Request) {
   if (!hasValidKey(req)) {
-    const session = await getServerSession(authOptions);
+    const session = await getValidSession();
     if (!session?.user) {
       return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
     }

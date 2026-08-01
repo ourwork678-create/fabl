@@ -81,12 +81,14 @@ export async function createSale(input: {
 
       // স্টক আউট + লেজার (অ্যাটমিক decrement)
       for (const [itemId, qty] of needByItem) {
-        const item = await tx.inventoryItem.findUniqueOrThrow({ where: { id: itemId } });
-        const newBal = round2(Number(item.currentStock) - qty);
-        await tx.inventoryItem.update({
-          where: { id: itemId },
+        // অ্যাটমিক শর্তসাপেক্ষ ডিক্রিমেন্ট — একসাথে দুটি লেনদেনেও স্টক ঋণাত্মক হবে না
+        const guarded = await tx.inventoryItem.updateMany({
+          where: { id: itemId, currentStock: { gte: qty } },
           data: { currentStock: { decrement: qty } },
         });
+        if (guarded.count === 0) throw new Error("স্টক পর্যাপ্ত নয় (একই সময়ে অন্য লেনদেনে স্টক বদলে গেছে)");
+        const item = await tx.inventoryItem.findUniqueOrThrow({ where: { id: itemId } });
+        const newBal = round2(Number(item.currentStock));
         await tx.stockMovement.create({
           data: {
             itemId,

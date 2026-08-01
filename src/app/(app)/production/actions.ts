@@ -65,9 +65,10 @@ export async function createBatch(input: {
 
     // ইনপুট স্টক কমানো (ধান OUT) — একত্রিত পরিমাণে, অ্যাটমিক
     for (const [itemId, qty] of needByItem) {
+      const guarded = await tx.inventoryItem.updateMany({ where: { id: itemId, currentStock: { gte: qty } }, data: { currentStock: { decrement: qty } } });
+      if (guarded.count === 0) throw new Error("স্টক পর্যাপ্ত নয় (একই সময়ে অন্য লেনদেনে স্টক বদলে গেছে)");
       const item = await tx.inventoryItem.findUniqueOrThrow({ where: { id: itemId } });
-      const newBal = round2(Number(item.currentStock) - qty);
-      await tx.inventoryItem.update({ where: { id: itemId }, data: { currentStock: { decrement: qty } } });
+      const newBal = round2(Number(item.currentStock));
       await tx.stockMovement.create({
         data: { itemId, direction: "OUT", quantity: qty, balance: newBal, refType: "PRODUCTION", refId: batch.id },
       });
@@ -114,8 +115,10 @@ export async function deleteBatch(id: string) {
           `${item.name} এর উৎপাদিত স্টক ইতিমধ্যে ব্যবহৃত/বিক্রি হয়েছে (আছে ${item.currentStock}), এই ব্যাচ মুছা যাবে না`
         );
       }
-      const newBal = round2(Number(item.currentStock) - Number(it.quantity));
-      await tx.inventoryItem.update({ where: { id: it.itemId }, data: { currentStock: { decrement: Number(it.quantity) } } });
+      const guarded = await tx.inventoryItem.updateMany({ where: { id: it.itemId, currentStock: { gte: Number(it.quantity) } }, data: { currentStock: { decrement: Number(it.quantity) } } });
+      if (guarded.count === 0) throw new Error("স্টক পর্যাপ্ত নয় (একই সময়ে অন্য লেনদেনে স্টক বদলে গেছে)");
+      const after = await tx.inventoryItem.findUniqueOrThrow({ where: { id: it.itemId } });
+      const newBal = round2(Number(after.currentStock));
       await tx.stockMovement.create({
         data: { itemId: it.itemId, direction: "OUT", quantity: Number(it.quantity), balance: newBal, refType: "PRODUCTION", refId: `REV-${batch.id}`, note: "ব্যাচ বাতিল — আউটপুট ফেরত" },
       });

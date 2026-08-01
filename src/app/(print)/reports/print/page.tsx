@@ -1,7 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 import { redirect } from "next/navigation";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getValidSession } from "@/lib/guard";
 import { prisma } from "@/lib/prisma";
 import { formatDate, formatTaka } from "@/lib/utils";
 import { generateQRCodeDataURL } from "@/lib/qrcode";
@@ -16,7 +15,7 @@ export default async function ReportsPrintPage({
 }: {
   searchParams: { start?: string; end?: string };
 }) {
-  const session = await getServerSession(authOptions);
+  const session = await getValidSession();
   if (!session) {
     redirect("/login");
   }
@@ -188,7 +187,7 @@ export default async function ReportsPrintPage({
             </p>
           </div>
           <div className="border p-3 rounded bg-gray-50">
-            <p className="text-gray-500">{isEn ? "Net Fund (Cash+Bank)" : "নিট তহবিল (নগদ+ব্যাংক)"}</p>
+            <p className="text-gray-500">{isEn ? "Net Cash Flow (This Period)" : "নিট নগদ প্রবাহ (এই সময়ে)"}</p>
             <p className="text-base font-bold text-indigo-700">{formatTaka(netCashFund, lang)}</p>
           </div>
         </div>

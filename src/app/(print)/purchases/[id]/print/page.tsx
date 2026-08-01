@@ -1,7 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 import { notFound, redirect } from "next/navigation";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getValidSession } from "@/lib/guard";
 import { prisma } from "@/lib/prisma";
 import { formatDate, formatTaka, formatNumber } from "@/lib/utils";
 import { generateQRCodeDataURL } from "@/lib/qrcode";
@@ -13,7 +12,7 @@ export default async function PurchasePrintPage({
 }: {
   params: { id: string };
 }) {
-  const session = await getServerSession(authOptions);
+  const session = await getValidSession();
   if (!session) {
     redirect("/login");
   }

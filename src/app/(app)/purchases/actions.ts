@@ -123,10 +123,11 @@ export async function deletePurchase(id: string) {
           `${item.name} এর স্টক ইতিমধ্যে ব্যবহৃত হয়েছে (আছে ${item.currentStock}), এই ক্রয় মুছা যাবে না`
         );
       }
-      await tx.inventoryItem.update({
-        where: { id: it.itemId },
+      const guarded = await tx.inventoryItem.updateMany({
+        where: { id: it.itemId, currentStock: { gte: Number(it.quantity) } },
         data: { currentStock: { decrement: Number(it.quantity) } },
       });
+      if (guarded.count === 0) throw new Error("স্টক পর্যাপ্ত নয় (একই সময়ে অন্য লেনদেনে স্টক বদলে গেছে)");
     }
     // বর্তমান (পেমেন্ট-পরবর্তী) বকেয়া কমানো (সুরক্ষিত চেক)
     const purchaseDue = Number(purchase.dueAmount);

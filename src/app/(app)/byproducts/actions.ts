@@ -110,11 +110,13 @@ export async function createByproductSale(formData: FormData) {
     });
 
     // স্টক আউট + লেজার (refId সহ, যাতে মুছলে মুভমেন্টও মুছে যায়)
-    const newBal = round2(Number(item.currentStock) - quantity);
-    await tx.inventoryItem.update({
-      where: { id: targetItemId },
+    const guarded = await tx.inventoryItem.updateMany({
+      where: { id: targetItemId, currentStock: { gte: quantity } },
       data: { currentStock: { decrement: quantity } },
     });
+    if (guarded.count === 0) throw new Error("স্টক পর্যাপ্ত নয় (একই সময়ে অন্য লেনদেনে স্টক বদলে গেছে)");
+    const after = await tx.inventoryItem.findUniqueOrThrow({ where: { id: targetItemId } });
+    const newBal = round2(Number(after.currentStock));
     await tx.stockMovement.create({
       data: {
         itemId: targetItemId,

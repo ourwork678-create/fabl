@@ -194,7 +194,7 @@ export default async function ReportsPage({
 
         {/* ক্যাশ (নিট ক্যাশ তহবিল) কার্ড */}
         <Card className={`bg-gradient-to-br ${netCashBalance >= 0 ? "from-brand-50/80 to-teal-50/40 border-brand-200" : "from-red-50/80 to-orange-50/40 border-red-200"} shadow-2xs`}>
-          <p className="text-xs font-semibold text-brand-900">{isEn ? "Net Fund (Cash+Bank)" : "নিট তহবিল (নগদ+ব্যাংক)"}</p>
+          <p className="text-xs font-semibold text-brand-900">{isEn ? "Net Cash Flow (This Period)" : "নিট নগদ প্রবাহ (এই সময়ে)"}</p>
           <p className={`text-lg font-bold mt-1 ${netCashBalance >= 0 ? "text-brand-700" : "text-red-600"}`}>
             {formatTaka(netCashBalance, lang)}
           </p>
