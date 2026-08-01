@@ -1,0 +1,51 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { prisma } from "@/lib/prisma";
+import { requireUser } from "@/lib/guard";
+import { UTILITY_CATEGORIES } from "@/lib/constants";
+
+export async function addUtilityExpense(formData: FormData) {
+  await requireUser();
+  const category = (formData.get("category") as string) || "বিদ্যুৎ";
+  if (!UTILITY_CATEGORIES.includes(category as any)) {
+    throw new Error("সঠিক ক্যাটাগরি দিন");
+  }
+  const amount = Number(formData.get("amount"));
+  const paymentMethod = (formData.get("paymentMethod") as string) || "CASH";
+  const description = (formData.get("description") as string) || null;
+  const customDate = formData.get("date") as string;
+
+  if (!amount || amount <= 0) {
+    throw new Error("সঠিক টাকার পরিমাণ লিখুন");
+  }
+
+  const date = customDate ? new Date(customDate) : new Date();
+
+  await prisma.expense.create({
+    data: {
+      category,
+      amount,
+      paymentMethod,
+      description,
+      date,
+    },
+  });
+
+  revalidatePath("/utilities");
+  revalidatePath("/accounts");
+  revalidatePath("/dashboard");
+  revalidatePath("/reports");
+}
+
+export async function deleteUtilityExpense(id: string) {
+  await requireUser();
+  await prisma.expense.delete({
+    where: { id },
+  });
+
+  revalidatePath("/utilities");
+  revalidatePath("/accounts");
+  revalidatePath("/dashboard");
+  revalidatePath("/reports");
+}

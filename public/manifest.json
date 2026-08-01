@@ -1,0 +1,19 @@
+{
+  "name": "Nishat Auto Rice Mill — রাইস মিল ব্যবস্থাপনা",
+  "short_name": "Nishat Auto Rice Mill",
+  "description": "অটো রাইস মিল ফ্যাক্টরি ব্যবস্থাপনা সফটওয়্যার",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#f0fdf4",
+  "theme_color": "#16a34a",
+  "lang": "bn",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

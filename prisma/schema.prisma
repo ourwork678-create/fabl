@@ -1,0 +1,360 @@
+// অটো রাইস মিল ব্যবস্থাপনা — ডেটাবেস স্কিমা
+// লোকাল ডেভেলপমেন্টে SQLite (enum সাপোর্ট করে না তাই সব enum String হিসেবে)।
+// PostgreSQL-এ যেতে: provider বদলান + .env আপডেট করুন (enum পরে যোগ করা যাবে)।
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ভ্যালু কন্সট্যান্ট (নিয়ন্ত্রণের জন্য src/lib/constants.ts দেখুন)
+// UserRole: OWNER | MANAGER | ACCOUNTANT | OPERATOR
+// ItemType: PADDY | RICE | BYPRODUCT
+// PurchaseStatus/SaleStatus: PENDING | PAID | PARTIAL | CANCELLED
+// MachineStatus: RUNNING | IDLE | MAINTENANCE | OFFLINE
+
+// ===================== ইউজার ও অথেন্টিকেশন =====================
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  phone        String?
+  designation  String?  // পদবী (যেমন: ম্যানেজার, হিসাবরক্ষক, মিল ফোরম্যান)
+  passwordHash String
+  role         String   @default("OPERATOR") // OWNER | MANAGER | ACCOUNTANT | OPERATOR
+  active       Boolean  @default(true)
+  monthlySalary Decimal?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  productionBatches ProductionBatch[] @relation("OperatorBatches")
+  salaries          Salary[]
+
+  @@index([email])
+}
+
+// ===================== পার্টি (কাস্টমার/সাপ্লায়ার) =====================
+
+model Customer {
+  id        String   @id @default(cuid())
+  code      String?  // কাস্টমার আইডি / কোড (যেমন: C-101)
+  name      String
+  phone     String?
+  address   String?
+  dueAmount Decimal  @default(0)
+  notes     String?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sales    Sale[]
+  payments Payment[] @relation("CustomerPayments")
+
+  @@index([phone])
+}
+
+model Supplier {
+  id        String   @id @default(cuid())
+  code      String?  // সাপ্লায়ার আইডি / কোড (যেমন: S-101)
+  name      String
+  phone     String?
+  address   String?
+  dueAmount Decimal  @default(0)
+  notes     String?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  purchases Purchase[]
+  payments  Payment[] @relation("SupplierPayments")
+
+  @@index([phone])
+}
+
+// ===================== ইনভেন্টরি (পণ্য ও স্টক) =====================
+
+model InventoryItem {
+  id           String   @id @default(cuid())
+  name         String   @unique
+  type         String   // PADDY | RICE | BYPRODUCT
+  unit         String   @default("মণ") // মণ / কেজি / বস্তা
+  currentStock Decimal  @default(0)
+  minStock     Decimal  @default(0)
+  saleRate     Decimal?
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  stockMovements     StockMovement[]
+  purchaseItems      PurchaseItem[]
+  saleItems          SaleItem[]
+  productionInputs   ProductionInput[]
+  productionOutputs  ProductionOutput[]
+
+  @@index([type])
+}
+
+model StockMovement {
+  id        String         @id @default(cuid())
+  itemId    String
+  item      InventoryItem  @relation(fields: [itemId], references: [id])
+  direction String         // "IN" | "OUT"
+  quantity  Decimal
+  balance   Decimal        // লেজার ব্যালেন্স
+  refType   String?        // PURCHASE | SALE | PRODUCTION | ADJUSTMENT
+  refId     String?
+  note      String?
+  createdAt DateTime       @default(now())
+
+  @@index([itemId])
+  @@index([refType, refId])
+}
+
+// ===================== ক্রয় (ধান ক্রয় রশিদ) =====================
+
+model Purchase {
+  id          String   @id @default(cuid())
+  receiptNo   String   @unique
+  date        DateTime @default(now())
+  supplierId  String
+  supplier    Supplier @relation(fields: [supplierId], references: [id])
+  subtotal    Decimal  @default(0)
+  discount    Decimal  @default(0)
+  totalAmount Decimal  @default(0)
+  paidAmount  Decimal  @default(0)
+  dueAmount   Decimal  @default(0)
+  status      String   @default("PENDING") // PENDING | PAID | PARTIAL | CANCELLED
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  items PurchaseItem[]
+
+  @@index([supplierId])
+  @@index([date])
+}
+
+model PurchaseItem {
+  id         String         @id @default(cuid())
+  purchaseId String
+  purchase   Purchase       @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  itemId     String
+  item       InventoryItem  @relation(fields: [itemId], references: [id])
+  quantity   Decimal
+  rate       Decimal
+  amount     Decimal
+
+  @@index([purchaseId])
+}
+
+// ===================== বিক্রয় (চাল বিক্রয় রশিদ) =====================
+
+model Sale {
+  id          String   @id @default(cuid())
+  receiptNo   String   @unique
+  date        DateTime @default(now())
+  customerId  String
+  customer    Customer @relation(fields: [customerId], references: [id])
+  subtotal    Decimal  @default(0)
+  discount    Decimal  @default(0)
+  totalAmount Decimal  @default(0)
+  paidAmount  Decimal  @default(0)
+  dueAmount   Decimal  @default(0)
+  status      String   @default("PENDING") // PENDING | PAID | PARTIAL | CANCELLED
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  items SaleItem[]
+
+  @@index([customerId])
+  @@index([date])
+}
+
+model SaleItem {
+  id     String         @id @default(cuid())
+  saleId String
+  sale   Sale           @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  itemId String
+  item   InventoryItem  @relation(fields: [itemId], references: [id])
+  quantity Decimal
+  rate   Decimal
+  amount Decimal
+
+  @@index([saleId])
+}
+
+// ===================== প্রোডাকশন (মিলিং) =====================
+
+model ProductionBatch {
+  id           String    @id @default(cuid())
+  batchNo      String    @unique
+  date         DateTime  @default(now())
+  machineId    String?
+  machine      Machine?  @relation(fields: [machineId], references: [id])
+  operatorId   String?
+  operator     User?     @relation("OperatorBatches", fields: [operatorId], references: [id])
+  startedAt    DateTime?
+  endedAt      DateTime?
+  status       String    @default("RUNNING") // RUNNING | COMPLETED | CANCELLED
+  recoveryRate Decimal?  // চাল উত্তোলন হার (%)
+  notes        String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  inputs  ProductionInput[]
+  outputs ProductionOutput[]
+
+  @@index([date])
+  @@index([machineId])
+}
+
+model ProductionInput {
+  id       String         @id @default(cuid())
+  batchId  String
+  batch    ProductionBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  itemId   String
+  item     InventoryItem  @relation(fields: [itemId], references: [id])
+  quantity Decimal
+
+  @@index([batchId])
+}
+
+model ProductionOutput {
+  id       String         @id @default(cuid())
+  batchId  String
+  batch    ProductionBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  itemId   String
+  item     InventoryItem  @relation(fields: [itemId], references: [id])
+  quantity Decimal
+
+  @@index([batchId])
+}
+
+// ===================== মেশিন ও IoT/সেন্সর =====================
+
+model Machine {
+  id            String   @id @default(cuid())
+  name          String
+  code          String   @unique
+  type          String?  // DRYER | BOILER | HULLER | POLISHER | GRADER ...
+  capacityPerHr Decimal? // মণ/ঘণ্টা
+  status        String   @default("IDLE") // RUNNING | IDLE | MAINTENANCE | OFFLINE
+  installedAt   DateTime?
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  productionBatches ProductionBatch[]
+  logs             MachineLog[]
+
+  @@index([status])
+}
+
+model MachineLog {
+  id          String   @id @default(cuid())
+  machineId   String
+  machine     Machine  @relation(fields: [machineId], references: [id], onDelete: Cascade)
+  timestamp   DateTime @default(now())
+  status      String   // RUNNING | IDLE | MAINTENANCE | OFFLINE
+  temperature Decimal? // সেলসিয়াস
+  vibration   Decimal?
+  powerKw     Decimal? // বিদ্যুৎ খরচ
+  rpm         Int?
+  throughput  Decimal? // আউটপুট মণ/ঘণ্টা
+  note        String?
+
+  @@index([machineId, timestamp])
+}
+
+// ===================== হিসাব-নিকাশ =====================
+
+model Expense {
+  id            String   @id @default(cuid())
+  date          DateTime @default(now())
+  category      String   // বিদ্যুৎ | শ্রম | পরিবহন | মেরামত | অন্যান্য
+  amount        Decimal
+  paymentMethod String   @default("CASH") // CASH | BANK | MOBILE
+  description   String?
+  createdAt     DateTime @default(now())
+
+  @@index([date])
+  @@index([category])
+}
+
+model Salary {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id])
+  month     String    // "2026-07"
+  amount    Decimal
+  bonus     Decimal   @default(0)
+  deduction Decimal   @default(0)
+  netAmount Decimal
+  paidDate  DateTime?
+  status    String    @default("PENDING") // PENDING | PAID
+  note      String?
+  createdAt DateTime  @default(now())
+
+  @@unique([userId, month])
+  @@index([month])
+}
+
+model Payment {
+  // কাস্টমার/সাপ্লায়ার থেকে টাকা গ্রহণ বা প্রদান
+  id          String    @id @default(cuid())
+  date        DateTime  @default(now())
+  partyType   String    // CUSTOMER | SUPPLIER
+  customerId  String?
+  customer    Customer? @relation("CustomerPayments", fields: [customerId], references: [id])
+  supplierId  String?
+  supplier    Supplier? @relation("SupplierPayments", fields: [supplierId], references: [id])
+  direction   String    // RECEIVED (গ্রহণ) | PAID (প্রদান)
+  amount      Decimal
+  method      String    @default("CASH") // CASH | BANK | MOBILE
+  refNo       String?   @unique
+  note        String?
+  createdAt   DateTime  @default(now())
+
+  @@index([customerId])
+  @@index([supplierId])
+  @@index([date])
+}
+
+// ===================== কর্মীবাহিনী (Workforce) =====================
+
+model WorkforceMember {
+  id           String                 @id @default(cuid())
+  name         String
+  phone        String?
+  designation  String?                // e.g. ড্রায়ার ড্রাইং কারিগর, বস্তা লোডার
+  rateType     String                 @default("DAILY") // DAILY (দৈনিক) | MONTHLY (মাসিক) | PIECE (বস্তা প্রতি)
+  rateAmount   Decimal                @default(0)
+  balance      Decimal                @default(0)       // Net balance owed to them
+  active       Boolean                @default(true)
+  createdAt    DateTime               @default(now())
+  updatedAt    DateTime               @updatedAt
+
+  transactions WorkforceTransaction[]
+}
+
+model WorkforceTransaction {
+  id                String          @id @default(cuid())
+  workforceMemberId String
+  workforceMember   WorkforceMember @relation(fields: [workforceMemberId], references: [id], onDelete: Cascade)
+  date              DateTime        @default(now())
+  type              String          // BILL (কাজ/বিল) | PAYMENT (পরিশোধ)
+  amount            Decimal
+  paymentMethod     String?         // CASH | BANK | MOBILE (only for PAYMENT)
+  description       String?
+  linkedExpenseId   String?         // Reference to the main Expense record (only for PAYMENT)
+  createdAt         DateTime        @default(now())
+
+  @@index([workforceMemberId])
+  @@index([date])
+}
