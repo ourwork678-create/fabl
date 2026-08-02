@@ -37,7 +37,7 @@ const bornomala = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Nishat Auto Rice Mill — রাইস মিল ব্যবস্থাপনা",
+  title: "Nishat Auto Rice Mill | রাইস মিল ব্যবস্থাপনা",
   description: "অটো রাইস মিল ফ্যাক্টরি ব্যবস্থাপনা সফটওয়্যার",
   manifest: "/manifest.json",
 };
