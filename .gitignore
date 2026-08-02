@@ -34,3 +34,6 @@ next-env.d.ts
 # vs code
 .vscode/
 .idea/
+
+# env ব্যাকআপ ফাইলও কখনো কমিট হবে না
+.env.backup*
