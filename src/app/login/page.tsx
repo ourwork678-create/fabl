@@ -44,23 +44,27 @@ function LoginForm() {
     <div className={`${lang === "en" ? "font-gsans" : "font-bangla"} relative min-h-screen`}>
       {/* ব্যাকগ্রাউন্ড: ধানক্ষেতের ছবি (না থাকলে গ্রাডিয়েন্ট ফলব্যাক) */}
       <div
-        className="fixed inset-0 -z-20 scale-110 bg-gradient-to-br from-emerald-800 via-emerald-700 to-lime-700 bg-cover bg-center blur-md"
+        className="fixed inset-0 -z-20 bg-gradient-to-br from-emerald-800 via-emerald-700 to-lime-700 bg-cover bg-center"
         style={{ backgroundImage: "url('/login-bg.png')" }}
       />
-      <div className="fixed inset-0 -z-10 bg-gradient-to-br from-slate-950/55 via-emerald-950/35 to-slate-900/55" />
+      <div className="fixed inset-0 -z-10 bg-slate-950/20" />
 
       <div className="absolute right-4 top-4 z-20">
         <LangToggle />
       </div>
 
       <div className="flex min-h-screen flex-col items-center justify-center px-4 py-10">
-        <div className="grid w-full max-w-[900px] overflow-hidden rounded-[25px] border border-white/25 shadow-2xl shadow-black/40 lg:min-h-[640px] lg:grid-cols-2">
-          {/* বাঁ পাশ: গ্লাসমরফিক প্যানেল */}
-          <div className="relative flex flex-col justify-between gap-8 border-b border-white/15 bg-white/10 p-8 backdrop-blur-2xl sm:p-10 lg:border-b-0 lg:border-r">
-            {/* উপরের আলোর রেখা (গ্লাস ইফেক্ট) */}
-            <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/60 to-transparent" />
+        <div className="grid w-full max-w-[1000px] gap-4 rounded-[25px] bg-white p-4 shadow-2xl shadow-black/30 lg:min-h-[620px] lg:grid-cols-2">
+          {/* বাঁ পাশ: ছবির ভেতরে বসানো প্যানেল */}
+          <div
+            className="relative flex min-h-[240px] flex-col overflow-hidden rounded-[18px] bg-emerald-800 bg-cover bg-center p-7 sm:p-8"
+            style={{ backgroundImage: "url('/login-bg.png')" }}
+          >
+            {/* নিচের অংশে ব্লার + স্করিম, উপরের টেক্সট পড়ার জন্য */}
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 top-1/3 backdrop-blur-lg" />
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-slate-950/65 via-slate-950/40 to-emerald-950/60" />
 
-            <div className="flex items-center gap-2.5">
+            <div className="relative flex items-center gap-2.5">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20 text-white ring-1 ring-white/30 backdrop-blur">
                 <Wheat size={20} />
               </div>
@@ -69,19 +73,18 @@ function LoginForm() {
               </span>
             </div>
 
-            <div>
-              <h1 className="text-3xl font-semibold leading-snug tracking-tight text-white sm:text-4xl">
+            <div className="relative mt-7">
+              <h1 className="text-2xl font-semibold leading-snug tracking-tight text-white sm:text-3xl">
                 {t("login.headline")}
               </h1>
-              <p className="mt-3 max-w-sm text-sm leading-relaxed text-white/75">
+              <p className="mt-3 max-w-sm text-sm leading-relaxed text-white/80">
                 {t("login.tagline")}
               </p>
             </div>
-
           </div>
 
           {/* ডান পাশ: লগইন ফর্ম */}
-          <div className="flex flex-col justify-center bg-white p-8 sm:p-10">
+          <div className="flex flex-col justify-center px-2 py-6 sm:px-6 lg:px-8">
             <div className="mb-7">
               <h2 className="text-2xl font-semibold tracking-tight text-gray-900">
                 {t("login.welcome")}
