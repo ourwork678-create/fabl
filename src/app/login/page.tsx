@@ -49,7 +49,7 @@ function LoginForm() {
           <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-600 text-white shadow-lg shadow-brand-200">
             <Wheat size={28} />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">{t("app.name")}</h1>
+          <h1 className="font-system text-2xl font-bold text-gray-900">{t("app.name")}</h1>
           <p className="text-sm text-gray-500">{t("app.welcome")}</p>
         </div>
 
@@ -91,8 +91,7 @@ function LoginForm() {
           </button>
 
           <p className="text-center text-xs text-gray-400">
-            {t("login.firstTime")}{" "}
-            <code className="text-gray-600">npm run db:seed</code>
+            {t("login.firstTime")}
           </p>
         </form>
       </div>

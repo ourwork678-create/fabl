@@ -64,7 +64,7 @@ const bn: Dict = {
   "login.password": "পাসওয়ার্ড",
   "login.submit": "প্রবেশ করুন",
   "login.error": "ইমেইল বা পাসওয়ার্ড ভুল হয়েছে",
-  "login.firstTime": "প্রথমবার? ডিফল্ট অ্যাডমিন তৈরি হবে।",
+  "login.firstTime": "শুধুমাত্র অনুমোদিত ব্যবহারকারীদের জন্য সংরক্ষিত",
 
   // ড্যাশবোর্ড
   "dashboard.title": "ড্যাশবোর্ড",
@@ -357,7 +357,7 @@ const en: Dict = {
   "login.password": "Password",
   "login.submit": "Sign in",
   "login.error": "Invalid email or password",
-  "login.firstTime": "First time? A default admin will be created.",
+  "login.firstTime": "Restricted to authorized users only",
 
   "dashboard.title": "Dashboard",
   "dashboard.welcome": "Welcome",

@@ -10,6 +10,7 @@ const config: Config = {
         sans: ["var(--font-tiro-bangla)", "system-ui", "-apple-system", "sans-serif"],
         bangla: ["var(--font-bangla)", "system-ui", "sans-serif"],
         tiro: ["var(--font-tiro-bangla)", "serif"],
+        system: ["system-ui", "-apple-system", "Segoe UI", "Roboto", "Helvetica Neue", "Arial", "sans-serif"],
       },
       colors: {
         brand: {
