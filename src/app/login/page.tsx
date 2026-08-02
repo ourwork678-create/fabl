@@ -44,7 +44,7 @@ function LoginForm() {
     <div className={`${lang === "en" ? "font-gsans" : "font-bangla"} relative min-h-screen`}>
       {/* ব্যাকগ্রাউন্ড: ধানক্ষেতের ছবি (না থাকলে গ্রাডিয়েন্ট ফলব্যাক) */}
       <div
-        className="fixed inset-0 -z-20 scale-110 bg-gradient-to-br from-emerald-800 via-emerald-700 to-lime-700 bg-cover bg-center blur-[6px]"
+        className="fixed inset-0 -z-20 scale-110 bg-gradient-to-br from-emerald-800 via-emerald-700 to-lime-700 bg-cover bg-center blur-[5px]"
         style={{ backgroundImage: "url('/login-bg.png')" }}
       />
       <div className="fixed inset-0 -z-10 bg-slate-950/20" />
@@ -53,7 +53,7 @@ function LoginForm() {
         <LangToggle />
       </div>
 
-      <div className="flex min-h-screen flex-col items-center justify-center px-4 py-10">
+      <div className="flex min-h-screen flex-col items-center justify-center px-4 pb-10 pt-20 sm:py-10">
         <div className="grid w-full max-w-[1000px] gap-4 rounded-[25px] bg-white p-3 shadow-2xl shadow-black/30 lg:min-h-[620px] lg:grid-cols-2">
           {/* বাঁ পাশ: ছবির ভেতরে বসানো প্যানেল */}
           <div
