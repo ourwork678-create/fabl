@@ -52,11 +52,6 @@ export function DashboardChart({ data, isDemo = false }: Props) {
             <h3 className="font-bold text-gray-900 text-base lg:text-lg">
               {isEn ? "Sales & Purchases Analysis" : "ক্রয় ও বিক্রয় বিশ্লেষণ"}
             </h3>
-            {(isDemo || (!data || data.length === 0)) && (
-              <span className="badge bg-amber-50 text-amber-700 border border-amber-200">
-                {isEn ? "Demo Data" : "ডেমো ডেটা"}
-              </span>
-            )}
           </div>
           <p className="text-xs text-gray-500">
             {isEn ? "Monthly financial cashflow overview" : "মাসিক আর্থিক লেনদেনের চিত্র"}

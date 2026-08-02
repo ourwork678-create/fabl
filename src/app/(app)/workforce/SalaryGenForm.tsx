@@ -25,15 +25,15 @@ export function SalaryGenForm() {
   }
 
   return (
-    <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm flex items-end gap-3">
+    <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm flex flex-col sm:flex-row sm:items-end gap-3">
       <div className="flex-1">
         <label className="label text-xs font-semibold text-gray-700 flex items-center gap-1.5 mb-1.5">
           <Calendar size={14} className="text-indigo-600" />
-          {isEn ? "Select Month for Staff Salaries" : "মাসিক বেতন জেনারেট (মালিক ব্যতীত কর্মকর্তা/কর্মচারী)"}
+          {isEn ? "Select Month for Staff Salaries" : "মাসিক বেতন জেনারেট"}
         </label>
-        <input type="month" value={month} onChange={(e) => setMonth(e.target.value)} className="input font-semibold" />
+        <input type="month" value={month} onChange={(e) => setMonth(e.target.value)} className="input font-semibold w-full" />
       </div>
-      <button onClick={generate} disabled={pending} className="btn-primary py-2.5 px-4 font-semibold text-xs shrink-0">
+      <button onClick={generate} disabled={pending} className="btn-primary py-2.5 px-4 font-semibold text-xs shrink-0 w-full sm:w-auto justify-center">
         {pending && <Loader2 size={14} className="animate-spin" />}
         {isEn ? "Generate Staff Salary" : "মাসিক বেতন শিট তৈরি করুন"}
       </button>

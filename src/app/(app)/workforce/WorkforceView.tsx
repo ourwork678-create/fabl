@@ -303,8 +303,8 @@ export function WorkforceView({
             <span className="text-[10px] text-gray-500 font-normal">({formatNumber(staffUsers.length, lang)} {isEn ? "Active Staff" : "জন সক্রিয় স্টাফ"})</span>
           </h4>
 
-          <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xs">
-            <table className="w-full text-left border-collapse text-xs">
+          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-xs">
+            <table className="w-full min-w-[560px] text-left border-collapse text-xs">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-100 text-slate-500 font-semibold uppercase">
                   <th className="px-4 py-2.5">{isEn ? "Name" : "কর্মকর্তার নাম"}</th>
@@ -364,8 +364,8 @@ export function WorkforceView({
 
           <SalaryGenForm />
 
-          <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xs">
-            <table className="w-full text-left border-collapse text-xs">
+          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-xs">
+            <table className="w-full min-w-[560px] text-left border-collapse text-xs">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-100 text-slate-500 font-semibold uppercase">
                   <th className="px-4 py-2.5">{isEn ? "Month" : "মাস"}</th>
