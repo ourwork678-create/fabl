@@ -7,8 +7,9 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 // ভ্যালু কন্সট্যান্ট (নিয়ন্ত্রণের জন্য src/lib/constants.ts দেখুন)

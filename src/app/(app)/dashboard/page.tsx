@@ -97,7 +97,7 @@ export default async function DashboardPage() {
         OR: [
           { name: { contains: "গুঁড়া" } },
           { name: { contains: "কুঁড়া" } },
-          { name: { contains: "Bran" } },
+          { name: { contains: "Bran", mode: "insensitive" } },
         ],
       },
     }),
@@ -107,7 +107,7 @@ export default async function DashboardPage() {
         type: "BYPRODUCT",
         OR: [
           { name: { contains: "খুদ" } },
-          { name: { contains: "Broken" } },
+          { name: { contains: "Broken", mode: "insensitive" } },
         ],
       },
     }),
