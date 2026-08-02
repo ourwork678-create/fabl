@@ -46,7 +46,7 @@ function LoginForm() {
       {/* ব্যাকগ্রাউন্ড: ধানক্ষেতের ছবি (না থাকলে গ্রাডিয়েন্ট ফলব্যাক) */}
       <div
         className="fixed inset-0 -z-20 bg-gradient-to-br from-emerald-800 via-emerald-700 to-lime-700 bg-cover bg-center"
-        style={{ backgroundImage: "url('/login-bg.jpg')" }}
+        style={{ backgroundImage: "url('/login-bg.png')" }}
       />
       <div className="fixed inset-0 -z-10 bg-gradient-to-br from-slate-950/70 via-emerald-950/45 to-slate-900/70" />
 
