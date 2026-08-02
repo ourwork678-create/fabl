@@ -3,7 +3,7 @@
 import { useState, Suspense } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Wheat, Loader2, Check } from "lucide-react";
+import { Wheat, Loader2 } from "lucide-react";
 import { useLang } from "@/components/LangProvider";
 import { LangToggle } from "@/components/LangToggle";
 
@@ -39,23 +39,22 @@ function LoginForm() {
     }
   }
 
-  const points = [t("login.point1"), t("login.point2"), t("login.point3")];
 
   return (
     <div className={`${lang === "en" ? "font-gsans" : "font-bangla"} relative min-h-screen`}>
       {/* ব্যাকগ্রাউন্ড: ধানক্ষেতের ছবি (না থাকলে গ্রাডিয়েন্ট ফলব্যাক) */}
       <div
-        className="fixed inset-0 -z-20 bg-gradient-to-br from-emerald-800 via-emerald-700 to-lime-700 bg-cover bg-center"
+        className="fixed inset-0 -z-20 scale-110 bg-gradient-to-br from-emerald-800 via-emerald-700 to-lime-700 bg-cover bg-center blur-md"
         style={{ backgroundImage: "url('/login-bg.png')" }}
       />
-      <div className="fixed inset-0 -z-10 bg-gradient-to-br from-slate-950/70 via-emerald-950/45 to-slate-900/70" />
+      <div className="fixed inset-0 -z-10 bg-gradient-to-br from-slate-950/55 via-emerald-950/35 to-slate-900/55" />
 
       <div className="absolute right-4 top-4 z-20">
         <LangToggle />
       </div>
 
       <div className="flex min-h-screen flex-col items-center justify-center px-4 py-10">
-        <div className="grid w-full max-w-5xl overflow-hidden rounded-3xl border border-white/25 shadow-2xl shadow-black/40 lg:grid-cols-2">
+        <div className="grid w-full max-w-[900px] overflow-hidden rounded-[25px] border border-white/25 shadow-2xl shadow-black/40 lg:min-h-[640px] lg:grid-cols-2">
           {/* বাঁ পাশ: গ্লাসমরফিক প্যানেল */}
           <div className="relative flex flex-col justify-between gap-8 border-b border-white/15 bg-white/10 p-8 backdrop-blur-2xl sm:p-10 lg:border-b-0 lg:border-r">
             {/* উপরের আলোর রেখা (গ্লাস ইফেক্ট) */}
@@ -79,20 +78,10 @@ function LoginForm() {
               </p>
             </div>
 
-            <ul className="hidden space-y-2.5 lg:block">
-              {points.map((p) => (
-                <li key={p} className="flex items-start gap-2.5 text-sm text-white/85">
-                  <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-white/25 ring-1 ring-white/30">
-                    <Check size={11} className="text-white" />
-                  </span>
-                  {p}
-                </li>
-              ))}
-            </ul>
           </div>
 
           {/* ডান পাশ: লগইন ফর্ম */}
-          <div className="bg-white p-8 sm:p-10">
+          <div className="flex flex-col justify-center bg-white p-8 sm:p-10">
             <div className="mb-7">
               <h2 className="text-2xl font-semibold tracking-tight text-gray-900">
                 {t("login.welcome")}
