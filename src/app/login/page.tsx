@@ -44,7 +44,7 @@ function LoginForm() {
     <div className={`${lang === "en" ? "font-gsans" : "font-bangla"} relative min-h-screen`}>
       {/* ব্যাকগ্রাউন্ড: ধানক্ষেতের ছবি (না থাকলে গ্রাডিয়েন্ট ফলব্যাক) */}
       <div
-        className="fixed inset-0 -z-20 bg-gradient-to-br from-emerald-800 via-emerald-700 to-lime-700 bg-cover bg-center"
+        className="fixed inset-0 -z-20 scale-110 bg-gradient-to-br from-emerald-800 via-emerald-700 to-lime-700 bg-cover bg-center blur-[6px]"
         style={{ backgroundImage: "url('/login-bg.png')" }}
       />
       <div className="fixed inset-0 -z-10 bg-slate-950/20" />
@@ -54,7 +54,7 @@ function LoginForm() {
       </div>
 
       <div className="flex min-h-screen flex-col items-center justify-center px-4 py-10">
-        <div className="grid w-full max-w-[1000px] gap-4 rounded-[25px] bg-white p-4 shadow-2xl shadow-black/30 lg:min-h-[620px] lg:grid-cols-2">
+        <div className="grid w-full max-w-[1000px] gap-4 rounded-[25px] bg-white p-3 shadow-2xl shadow-black/30 lg:min-h-[620px] lg:grid-cols-2">
           {/* বাঁ পাশ: ছবির ভেতরে বসানো প্যানেল */}
           <div
             className="relative flex min-h-[240px] flex-col overflow-hidden rounded-[18px] bg-emerald-800 bg-cover bg-center p-7 sm:p-8"
@@ -73,11 +73,11 @@ function LoginForm() {
               </span>
             </div>
 
-            <div className="relative mt-7">
+            <div className="relative mt-16 sm:mt-20">
               <h1 className="text-2xl font-semibold leading-snug tracking-tight text-white sm:text-3xl">
                 {t("login.headline")}
               </h1>
-              <p className="mt-3 max-w-sm text-sm leading-relaxed text-white/80">
+              <p className="mt-10 max-w-sm text-sm leading-relaxed text-white/80">
                 {t("login.tagline")}
               </p>
             </div>
