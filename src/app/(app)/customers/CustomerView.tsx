@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useLang } from "@/components/LangProvider";
-import { PageHeader, Card } from "@/components/ui";
+import { Card } from "@/components/ui";
 import { formatTaka , formatNumber } from "@/lib/utils";
 import { Users, Plus, Search, Edit2, Trash2, User, Wallet } from "lucide-react";
 import { deleteCustomer } from "../parties/actions";
@@ -68,12 +68,11 @@ export function CustomerView({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-        <PageHeader
-          title=""
-          subtitle={isEn ? "Customer directory and sales ledgers" : "কাস্টমার ডিরেক্টরি, আইডি কোড ও চাল বিক্রয় খতিয়ান"}
-        />
-        <Link href="/customers/new" className="btn-primary flex items-center gap-1.5 text-xs py-1.5 px-3">
+      <div className="flex items-start justify-between gap-4 border-b border-slate-100 pb-3">
+        <p className="min-w-0 flex-1 text-sm text-gray-500">
+          {isEn ? "Customer directory and sales ledgers" : "কাস্টমার ডিরেক্টরি, আইডি কোড ও চাল বিক্রয় খতিয়ান"}
+        </p>
+        <Link href="/customers/new" className="btn-primary flex shrink-0 items-center gap-1.5 text-xs py-1.5 px-3">
           <Plus size={14} />
           {isEn ? "Add Customer" : "নতুন কাস্টমার"}
         </Link>
@@ -136,10 +135,11 @@ export function CustomerView({
       ) : (
         <div className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-xs">
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-xs">
+            <table className="w-full min-w-[760px] text-left border-collapse text-xs">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-100 text-slate-500 font-semibold uppercase text-[11px]">
-                  <th className="px-4 py-3">{isEn ? "ID & Name" : "আইডি ও নাম"}</th>
+                  <th className="px-4 py-3">{isEn ? "ID" : "আইডি"}</th>
+                  <th className="px-4 py-3">{isEn ? "Name" : "নাম"}</th>
                   <th className="px-4 py-3">{isEn ? "Phone & Address" : "মোবাইল ও ঠিকানা"}</th>
                   <th className="px-4 py-3 text-right text-teal-800">{isEn ? "Total Purchases" : "মোট ক্রয়"}</th>
                   <th className="px-4 py-3 text-right text-emerald-700">{isEn ? "Total Paid" : "পরিশোধ"}</th>
@@ -154,14 +154,12 @@ export function CustomerView({
 
                   return (
                     <tr key={c.id} className="hover:bg-slate-50/50 transition">
-                      <td className="px-4 py-3">
-                        <div className="font-bold text-gray-900 flex items-center gap-1.5">
-                          <span className="font-mono text-[10px] text-brand-700 bg-brand-50 px-1.5 py-0.5 rounded border border-brand-200">
-                            {displayCode}
-                          </span>
-                          {c.name}
-                        </div>
+                      <td className="px-4 py-3 align-top">
+                        <span className="font-mono text-[10px] whitespace-nowrap text-brand-700 bg-brand-50 px-1.5 py-0.5 rounded border border-brand-200">
+                          {displayCode}
+                        </span>
                       </td>
+                      <td className="px-4 py-3 align-top font-bold text-gray-900">{c.name}</td>
                       <td className="px-4 py-3 font-medium text-gray-600">
                         <div>{c.phone || "—"}</div>
                         <div className="text-[10px] text-gray-400">{c.address || "—"}</div>

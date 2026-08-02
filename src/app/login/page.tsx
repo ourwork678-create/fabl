@@ -3,7 +3,7 @@
 import { useState, Suspense } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Wheat, Loader2 } from "lucide-react";
+import { Wheat, Loader2, Check } from "lucide-react";
 import { useLang } from "@/components/LangProvider";
 import { LangToggle } from "@/components/LangToggle";
 
@@ -11,7 +11,7 @@ function LoginForm() {
   const router = useRouter();
   const params = useSearchParams();
   const callbackUrl = params.get("callbackUrl") || "/dashboard";
-  const { t } = useLang();
+  const { t, lang } = useLang();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -39,61 +39,122 @@ function LoginForm() {
     }
   }
 
+  const points = [t("login.point1"), t("login.point2"), t("login.point3")];
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-brand-50 to-gray-100 px-4">
-      <div className="absolute right-4 top-4">
+    <div className={`${lang === "en" ? "font-gsans" : "font-bangla"} relative min-h-screen`}>
+      {/* ব্যাকগ্রাউন্ড: ধানক্ষেতের ছবি (না থাকলে গ্রাডিয়েন্ট ফলব্যাক) */}
+      <div
+        className="fixed inset-0 -z-20 bg-gradient-to-br from-emerald-800 via-emerald-700 to-lime-700 bg-cover bg-center"
+        style={{ backgroundImage: "url('/login-bg.jpg')" }}
+      />
+      <div className="fixed inset-0 -z-10 bg-gradient-to-br from-slate-950/70 via-emerald-950/45 to-slate-900/70" />
+
+      <div className="absolute right-4 top-4 z-20">
         <LangToggle />
       </div>
-      <div className="w-full max-w-md">
-        <div className="mb-6 flex flex-col items-center text-center">
-          <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-600 text-white shadow-lg shadow-brand-200">
-            <Wheat size={28} />
+
+      <div className="flex min-h-screen flex-col items-center justify-center px-4 py-10">
+        <div className="grid w-full max-w-5xl overflow-hidden rounded-3xl border border-white/25 shadow-2xl shadow-black/40 lg:grid-cols-2">
+          {/* বাঁ পাশ: গ্লাসমরফিক প্যানেল */}
+          <div className="relative flex flex-col justify-between gap-8 border-b border-white/15 bg-white/10 p-8 backdrop-blur-2xl sm:p-10 lg:border-b-0 lg:border-r">
+            {/* উপরের আলোর রেখা (গ্লাস ইফেক্ট) */}
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/60 to-transparent" />
+
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20 text-white ring-1 ring-white/30 backdrop-blur">
+                <Wheat size={20} />
+              </div>
+              <span className="font-system text-base font-semibold tracking-tight text-white">
+                {t("app.name")}
+              </span>
+            </div>
+
+            <div>
+              <h1 className="text-3xl font-semibold leading-snug tracking-tight text-white sm:text-4xl">
+                {t("login.headline")}
+              </h1>
+              <p className="mt-3 max-w-sm text-sm leading-relaxed text-white/75">
+                {t("login.tagline")}
+              </p>
+            </div>
+
+            <ul className="hidden space-y-2.5 lg:block">
+              {points.map((p) => (
+                <li key={p} className="flex items-start gap-2.5 text-sm text-white/85">
+                  <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-white/25 ring-1 ring-white/30">
+                    <Check size={11} className="text-white" />
+                  </span>
+                  {p}
+                </li>
+              ))}
+            </ul>
           </div>
-          <h1 className="font-system text-2xl font-bold text-gray-900">{t("app.name")}</h1>
-          <p className="text-sm text-gray-500">{t("app.welcome")}</p>
+
+          {/* ডান পাশ: লগইন ফর্ম */}
+          <div className="bg-white p-8 sm:p-10">
+            <div className="mb-7">
+              <h2 className="text-2xl font-semibold tracking-tight text-gray-900">
+                {t("login.welcome")}
+              </h2>
+              <p className="mt-1.5 text-sm text-gray-500">{t("login.welcomeSub")}</p>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                  {t("login.email")}
+                </label>
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full rounded-xl border border-gray-200 bg-gray-50/60 px-3.5 py-2.5 text-sm text-gray-900 outline-none transition focus:border-brand-500 focus:bg-white focus:ring-4 focus:ring-brand-100"
+                  placeholder="you@example.com"
+                  autoComplete="email"
+                />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                  {t("login.password")}
+                </label>
+                <input
+                  type="password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full rounded-xl border border-gray-200 bg-gray-50/60 px-3.5 py-2.5 text-sm text-gray-900 outline-none transition focus:border-brand-500 focus:bg-white focus:ring-4 focus:ring-brand-100"
+                  placeholder="••••••••"
+                  autoComplete="current-password"
+                />
+              </div>
+
+              {error && (
+                <p className="rounded-xl bg-red-50 px-3.5 py-2.5 text-sm text-red-600">
+                  {error}
+                </p>
+              )}
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand-600 py-2.5 text-sm font-semibold text-white shadow-lg shadow-brand-200/60 transition hover:bg-brand-700 disabled:opacity-70"
+              >
+                {loading ? <Loader2 size={16} className="animate-spin" /> : null}
+                {t("login.submit")}
+              </button>
+
+              <p className="pt-1 text-center text-xs text-gray-400">
+                {t("login.firstTime")}
+              </p>
+            </form>
+          </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="card space-y-4 p-6">
-          <div>
-            <label className="label">{t("login.email")}</label>
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="input"
-              placeholder="you@example.com"
-              autoComplete="email"
-            />
-          </div>
-          <div>
-            <label className="label">{t("login.password")}</label>
-            <input
-              type="password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="input"
-              placeholder="••••••••"
-              autoComplete="current-password"
-            />
-          </div>
-
-          {error && (
-            <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">
-              {error}
-            </p>
-          )}
-
-          <button type="submit" disabled={loading} className="btn-primary w-full">
-            {loading ? <Loader2 size={16} className="animate-spin" /> : null}
-            {t("login.submit")}
-          </button>
-
-          <p className="text-center text-xs text-gray-400">
-            {t("login.firstTime")}
-          </p>
-        </form>
+        <p className="mt-6 text-center text-xs text-white/60">
+          Developed by <span className="font-medium text-white/80">Bunon It</span>
+        </p>
       </div>
     </div>
   );
@@ -101,7 +162,13 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<div className="flex min-h-screen items-center justify-center text-sm text-gray-500">লোড হচ্ছে...</div>}>
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-slate-900 text-sm text-white/70">
+          লোড হচ্ছে...
+        </div>
+      }
+    >
       <LoginForm />
     </Suspense>
   );

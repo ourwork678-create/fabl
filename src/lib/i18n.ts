@@ -65,6 +65,13 @@ const bn: Dict = {
   "login.submit": "প্রবেশ করুন",
   "login.error": "ইমেইল বা পাসওয়ার্ড ভুল হয়েছে",
   "login.firstTime": "শুধুমাত্র অনুমোদিত ব্যবহারকারীদের জন্য সংরক্ষিত",
+  "login.headline": "প্রতিটি দানার হিসাব, এক জায়গায়",
+  "login.tagline": "ধান ক্রয় থেকে চাল বিক্রয় পর্যন্ত মিলের পূর্ণাঙ্গ খতিয়ান, মজুদ ও মুনাফার হিসাব একই ঠিকানায়।",
+  "login.welcome": "আবার স্বাগতম",
+  "login.welcomeSub": "মিলের ড্যাশবোর্ডে যেতে অ্যাকাউন্টে প্রবেশ করুন",
+  "login.point1": "ক্রয়, উৎপাদন ও বিক্রয়ের এক সুতোয় গাঁথা হিসাব",
+  "login.point2": "বকেয়া, মজুদ ও মুনাফা তাৎক্ষণিক চোখের সামনে",
+  "login.point3": "যাচাইযোগ্য QR সহ পেশাদার মেমো ও রিপোর্ট",
 
   // ড্যাশবোর্ড
   "dashboard.title": "ড্যাশবোর্ড",
@@ -358,6 +365,13 @@ const en: Dict = {
   "login.submit": "Sign in",
   "login.error": "Invalid email or password",
   "login.firstTime": "Restricted to authorized users only",
+  "login.headline": "Every grain, accounted for.",
+  "login.tagline": "From paddy purchase to rice sales, your mill's complete ledger, stock and profit in one place.",
+  "login.welcome": "Welcome back",
+  "login.welcomeSub": "Sign in to continue to your mill dashboard",
+  "login.point1": "Purchase, milling and sales tied into one ledger",
+  "login.point2": "Dues, stock and profit visible at a glance",
+  "login.point3": "Professional memos and reports with verifiable QR",
 
   "dashboard.title": "Dashboard",
   "dashboard.welcome": "Welcome",

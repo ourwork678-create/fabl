@@ -11,6 +11,8 @@ const config: Config = {
         bangla: ["var(--font-bangla)", "system-ui", "sans-serif"],
         tiro: ["var(--font-tiro-bangla)", "serif"],
         system: ["system-ui", "-apple-system", "Segoe UI", "Roboto", "Helvetica Neue", "Arial", "sans-serif"],
+        // লগইন পেজ: ইংরেজিতে Google Sans, বাংলায় Hind Siliguri
+        gsans: ["Google Sans", "var(--font-bangla)", "system-ui", "sans-serif"],
       },
       colors: {
         brand: {

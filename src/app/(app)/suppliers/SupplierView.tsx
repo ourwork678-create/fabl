@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useLang } from "@/components/LangProvider";
-import { PageHeader, Card } from "@/components/ui";
+import { Card } from "@/components/ui";
 import { formatTaka , formatNumber } from "@/lib/utils";
 import { Users, Plus, Search, Edit2, Trash2, User, Wallet } from "lucide-react";
 import { deleteSupplier } from "../parties/actions";
@@ -68,12 +68,11 @@ export function SupplierView({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-        <PageHeader
-          title=""
-          subtitle={isEn ? "Supplier directory and paddy supply ledgers" : "সাপ্লায়ার ডিরেক্টরি, আইডি কোড ও ধানের পাওনা খতিয়ান"}
-        />
-        <Link href="/suppliers/new" className="btn-primary flex items-center gap-1.5 text-xs py-1.5 px-3">
+      <div className="flex items-start justify-between gap-4 border-b border-slate-100 pb-3">
+        <p className="min-w-0 flex-1 text-sm text-gray-500">
+          {isEn ? "Supplier directory and paddy supply ledgers" : "সাপ্লায়ার ডিরেক্টরি, আইডি কোড ও ধানের পাওনা খতিয়ান"}
+        </p>
+        <Link href="/suppliers/new" className="btn-primary flex shrink-0 items-center gap-1.5 text-xs py-1.5 px-3">
           <Plus size={14} />
           {isEn ? "Add Supplier" : "নতুন সাপ্লায়ার"}
         </Link>
@@ -139,10 +138,11 @@ export function SupplierView({
       ) : (
         <div className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-xs">
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-xs">
+            <table className="w-full min-w-[760px] text-left border-collapse text-xs">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-100 text-slate-500 font-semibold uppercase text-[11px]">
-                  <th className="px-4 py-3">{isEn ? "ID & Name" : "আইডি ও নাম"}</th>
+                  <th className="px-4 py-3">{isEn ? "ID" : "আইডি"}</th>
+                  <th className="px-4 py-3">{isEn ? "Name" : "নাম"}</th>
                   <th className="px-4 py-3">{isEn ? "Phone & Address" : "মোবাইল ও ঠিকানা"}</th>
                   <th className="px-4 py-3 text-right text-amber-800">{isEn ? "Total Supplied" : "মোট ধান সরবরাহ (বিল)"}</th>
                   <th className="px-4 py-3 text-right text-emerald-700">{isEn ? "Total Paid" : "পরিশোধ"}</th>
@@ -157,14 +157,12 @@ export function SupplierView({
 
                   return (
                     <tr key={s.id} className="hover:bg-slate-50/50 transition">
-                      <td className="px-4 py-3">
-                        <div className="font-bold text-gray-900 flex items-center gap-1.5">
-                          <span className="font-mono text-[10px] text-purple-700 bg-purple-50 px-1.5 py-0.5 rounded border border-purple-200">
-                            {displayCode}
-                          </span>
-                          {s.name}
-                        </div>
+                      <td className="px-4 py-3 align-top">
+                        <span className="font-mono text-[10px] whitespace-nowrap text-purple-700 bg-purple-50 px-1.5 py-0.5 rounded border border-purple-200">
+                          {displayCode}
+                        </span>
                       </td>
+                      <td className="px-4 py-3 align-top font-bold text-gray-900">{s.name}</td>
                       <td className="px-4 py-3 font-medium text-gray-600">
                         <div>{s.phone || "—"}</div>
                         <div className="text-[10px] text-gray-400">{s.address || "—"}</div>

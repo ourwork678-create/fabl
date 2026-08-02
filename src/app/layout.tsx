@@ -36,6 +36,10 @@ const bornomala = localFont({
   display: "swap",
 });
 
+// Google Sans — next/font-এ এই ফন্টটি নেই, তাই সরাসরি Google Fonts থেকে লোড
+const googleSansHref =
+  "https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600;700&display=swap";
+
 export const metadata: Metadata = {
   title: "Nishat Auto Rice Mill | রাইস মিল ব্যবস্থাপনা",
   description: "অটো রাইস মিল ফ্যাক্টরি ব্যবস্থাপনা সফটওয়্যার",
@@ -57,6 +61,11 @@ export default async function RootLayout({
 
   return (
     <html lang={lang === "en" ? "en" : "bn"} className={`${inter.variable} ${bangla.variable} ${bornomala.variable}`}>
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link rel="stylesheet" href={googleSansHref} />
+      </head>
       <body className="font-sans">
         <Providers lang={lang}>{children}</Providers>
       </body>
