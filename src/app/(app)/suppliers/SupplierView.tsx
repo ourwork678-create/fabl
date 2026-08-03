@@ -1,5 +1,7 @@
 "use client";
 
+import { unwrap } from "@/lib/action-result";
+
 import { useState } from "react";
 import Link from "next/link";
 import { useLang } from "@/components/LangProvider";
@@ -39,7 +41,7 @@ export function SupplierView({
     }
     setPendingId(id);
     try {
-      await deleteSupplier(id);
+      unwrap(await deleteSupplier(id));
       setSuppliers((prev) => prev.filter((s) => s.id !== id));
     } catch (e: any) {
       alert(e.message || (isEn ? "Failed to delete supplier" : "সাপ্লায়ার মুছতে ব্যর্থ হয়েছে"));

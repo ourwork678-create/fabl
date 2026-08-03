@@ -1,5 +1,7 @@
 "use client";
 
+import { unwrap } from "@/lib/action-result";
+
 import { useState } from "react";
 import Link from "next/link";
 import { useLang } from "@/components/LangProvider";
@@ -38,7 +40,7 @@ export function CustomerView({
     }
     setPendingId(id);
     try {
-      await deleteCustomer(id);
+      unwrap(await deleteCustomer(id));
       setCustomers((prev) => prev.filter((c) => c.id !== id));
     } catch (e: any) {
       alert(e.message || (isEn ? "Failed to delete customer" : "কাস্টমার মুছতে ব্যর্থ হয়েছে"));

@@ -1,5 +1,7 @@
 "use client";
 
+import { unwrap } from "@/lib/action-result";
+
 import { useTransition } from "react";
 import { Loader2 } from "lucide-react";
 import { useLang } from "@/components/LangProvider";
@@ -12,7 +14,7 @@ export function PaySalaryButton({ id }: { id: string }) {
     start(async () => {
       try {
         const { paySalary } = await import("./actions");
-        await paySalary(id);
+        unwrap(await paySalary(id));
       } catch (err: any) {
         alert(err.message);
       }

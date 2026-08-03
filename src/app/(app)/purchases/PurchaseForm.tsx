@@ -1,5 +1,7 @@
 "use client";
 
+import { unwrap } from "@/lib/action-result";
+
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Plus, Trash2 } from "lucide-react";
@@ -51,14 +53,14 @@ export function PurchaseForm({
     start(async () => {
       try {
         const { createPurchase } = await import("./actions");
-        await createPurchase({
+        unwrap(await createPurchase({
           supplierId: fd.get("supplierId") as string,
           date: fd.get("date") as string,
           discount: Number(fd.get("discount") || 0),
           paidAmount: Number(fd.get("paidAmount") || 0),
           notes: (fd.get("notes") as string) || undefined,
           items: lines.filter((l) => l.itemId && l.quantity > 0),
-        });
+        }));
         router.push("/purchases");
         router.refresh();
       } catch (err: any) {

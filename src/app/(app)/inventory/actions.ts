@@ -1,5 +1,7 @@
 "use server";
 
+import { runAction } from "@/lib/action-result";
+
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/guard";
@@ -52,42 +54,44 @@ export async function createInventoryItem(formData: FormData) {
 }
 
 export async function adjustStock(itemId: string, formData: FormData) {
-  await requireUser();
-  const direction = formData.get("direction") as string; // IN | OUT
-  const quantity = num(formData.get("quantity"));
-  const note = (formData.get("note") as string)?.trim() || null;
+  return runAction(async () => {
+    await requireUser();
+    const direction = formData.get("direction") as string; // IN | OUT
+    const quantity = num(formData.get("quantity"));
+    const note = (formData.get("note") as string)?.trim() || null;
 
-  if (!quantity || quantity <= 0) throw new Error("পরিমাণ সঠিক নয়");
-  if (!["IN", "OUT"].includes(direction)) throw new Error("দিক সঠিক নয়");
+    if (!quantity || quantity <= 0) throw new Error("পরিমাণ সঠিক নয়");
+    if (!["IN", "OUT"].includes(direction)) throw new Error("দিক সঠিক নয়");
 
-  await prisma.$transaction(async (tx) => {
-    const item = await tx.inventoryItem.findUniqueOrThrow({ where: { id: itemId } });
-    if (direction === "OUT" && Number(item.currentStock) < quantity) {
-      throw new Error("স্টক পর্যাপ্ত নয়");
-    }
-    if (direction === "OUT") {
-      const guarded = await tx.inventoryItem.updateMany({ where: { id: itemId, currentStock: { gte: quantity } }, data: { currentStock: { decrement: quantity } } });
-      if (guarded.count === 0) throw new Error("স্টক পর্যাপ্ত নয় (একই সময়ে অন্য লেনদেনে স্টক বদলে গেছে)");
-    } else {
-      await tx.inventoryItem.update({ where: { id: itemId }, data: { currentStock: { increment: quantity } } });
-    }
-    const after = await tx.inventoryItem.findUniqueOrThrow({ where: { id: itemId } });
-    const newBalance = round2(Number(after.currentStock));
+    await prisma.$transaction(async (tx) => {
+      const item = await tx.inventoryItem.findUniqueOrThrow({ where: { id: itemId } });
+      if (direction === "OUT" && Number(item.currentStock) < quantity) {
+        throw new Error("স্টক পর্যাপ্ত নয়");
+      }
+      if (direction === "OUT") {
+        const guarded = await tx.inventoryItem.updateMany({ where: { id: itemId, currentStock: { gte: quantity } }, data: { currentStock: { decrement: quantity } } });
+        if (guarded.count === 0) throw new Error("স্টক পর্যাপ্ত নয় (একই সময়ে অন্য লেনদেনে স্টক বদলে গেছে)");
+      } else {
+        await tx.inventoryItem.update({ where: { id: itemId }, data: { currentStock: { increment: quantity } } });
+      }
+      const after = await tx.inventoryItem.findUniqueOrThrow({ where: { id: itemId } });
+      const newBalance = round2(Number(after.currentStock));
 
-    await tx.stockMovement.create({
-      data: {
-        itemId,
-        direction,
-        quantity,
-        balance: newBalance,
-        refType: "ADJUSTMENT",
-        note,
-      },
+      await tx.stockMovement.create({
+        data: {
+          itemId,
+          direction,
+          quantity,
+          balance: newBalance,
+          refType: "ADJUSTMENT",
+          note,
+        },
+      });
     });
-  });
 
-  revalidatePath("/inventory");
-  revalidatePath("/dashboard");
+    revalidatePath("/inventory");
+    revalidatePath("/dashboard");
+  });
 }
 
 export async function deleteInventoryItem(itemId: string) {

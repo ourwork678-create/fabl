@@ -2,13 +2,14 @@
 
 import { useState, useTransition, useRef, useEffect } from "react";
 import { Loader2, Trash2 } from "lucide-react";
+import { unwrap, type ActionResult } from "@/lib/action-result";
 
 export function DeleteButton({
   action,
   label = "মুছুন",
   confirmText = "নিশ্চিতভাবে মুছবেন?",
 }: {
-  action: () => Promise<void>;
+  action: () => Promise<ActionResult<void>>;
   label?: string;
   confirmText?: string;
 }) {
@@ -32,7 +33,7 @@ export function DeleteButton({
     if (timer.current) clearTimeout(timer.current);
     start(async () => {
       try {
-        await action();
+        unwrap(await action());
       } catch (err: any) {
         alert(err.message);
       } finally {

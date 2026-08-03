@@ -1,5 +1,7 @@
 "use server";
 
+import { runAction } from "@/lib/action-result";
+
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/guard";
@@ -8,70 +10,78 @@ import { EXPENSE_CATEGORIES } from "@/lib/constants";
 import { generateSalariesForMonth, markSalaryPaid } from "@/lib/salary";
 
 export async function addExpense(formData: FormData) {
-  await requireUser();
-  const category = formData.get("category") as string;
-  const amount = parseFloat(formData.get("amount") as string);
-  if (!category || !EXPENSE_CATEGORIES.includes(category as any)) {
-    throw new Error("সঠিক ক্যাটাগরি দিন");
-  }
-  if (!amount || amount <= 0) throw new Error("পরিমাণ সঠিক নয়");
+  return runAction(async () => {
+    await requireUser();
+    const category = formData.get("category") as string;
+    const amount = parseFloat(formData.get("amount") as string);
+    if (!category || !EXPENSE_CATEGORIES.includes(category as any)) {
+      throw new Error("সঠিক ক্যাটাগরি দিন");
+    }
+    if (!amount || amount <= 0) throw new Error("পরিমাণ সঠিক নয়");
 
-  await prisma.expense.create({
-    data: {
-      category,
-      amount,
-      paymentMethod: (formData.get("method") as string) || "CASH",
-      description: (formData.get("description") as string) || null,
-    },
+    await prisma.expense.create({
+      data: {
+        category,
+        amount,
+        paymentMethod: (formData.get("method") as string) || "CASH",
+        description: (formData.get("description") as string) || null,
+      },
+    });
+
+    revalidatePath("/reports");
+    revalidatePath("/accounts");
+    revalidatePath("/dashboard");
   });
-
-  revalidatePath("/reports");
-  revalidatePath("/accounts");
-  revalidatePath("/dashboard");
 }
 
 export async function generateSalaries(formData: FormData) {
-  await requireUser();
-  await generateSalariesForMonth(formData.get("month") as string);
+  return runAction(async () => {
+    await requireUser();
+    await generateSalariesForMonth(formData.get("month") as string);
 
-  revalidatePath("/reports");
-  revalidatePath("/accounts");
-  revalidatePath("/dashboard");
+    revalidatePath("/reports");
+    revalidatePath("/accounts");
+    revalidatePath("/dashboard");
+  });
 }
 
 export async function paySalary(id: string) {
-  await requireUser();
-  await markSalaryPaid(id);
+  return runAction(async () => {
+    await requireUser();
+    await markSalaryPaid(id);
 
-  revalidatePath("/reports");
-  revalidatePath("/accounts");
-  revalidatePath("/dashboard");
+    revalidatePath("/reports");
+    revalidatePath("/accounts");
+    revalidatePath("/dashboard");
+  });
 }
 
 export async function addCashDeposit(formData: FormData) {
-  await requireUser();
-  const amount = parseFloat(formData.get("amount") as string);
-  const paymentMethod = (formData.get("method") as string) || "BANK";
-  const description = (formData.get("description") as string) || "ক্যাশ জমাদান (ব্যাংকে/তহবিলে)";
-  const customDate = formData.get("date") as string;
+  return runAction(async () => {
+    await requireUser();
+    const amount = parseFloat(formData.get("amount") as string);
+    const paymentMethod = (formData.get("method") as string) || "BANK";
+    const description = (formData.get("description") as string) || "ক্যাশ জমাদান (ব্যাংকে/তহবিলে)";
+    const customDate = formData.get("date") as string;
 
-  if (!amount || amount <= 0) throw new Error("সঠিক টাকার পরিমাণ লিখুন");
+    if (!amount || amount <= 0) throw new Error("সঠিক টাকার পরিমাণ লিখুন");
 
-  const date = parseDateLocal(customDate);
+    const date = parseDateLocal(customDate);
 
-  await prisma.expense.create({
-    data: {
-      category: "ক্যাশ জমা",
-      amount,
-      paymentMethod,
-      description,
-      date,
-    },
+    await prisma.expense.create({
+      data: {
+        category: "ক্যাশ জমা",
+        amount,
+        paymentMethod,
+        description,
+        date,
+      },
+    });
+
+    revalidatePath("/reports");
+    revalidatePath("/accounts");
+    revalidatePath("/dashboard");
   });
-
-  revalidatePath("/reports");
-  revalidatePath("/accounts");
-  revalidatePath("/dashboard");
 }
 
 export async function deleteExpense(id: string) {

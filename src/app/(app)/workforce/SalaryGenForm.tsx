@@ -1,5 +1,7 @@
 "use client";
 
+import { unwrap } from "@/lib/action-result";
+
 import { useState, useTransition } from "react";
 import { Loader2, Calendar } from "lucide-react";
 import { useLang } from "@/components/LangProvider";
@@ -16,7 +18,7 @@ export function SalaryGenForm() {
         const { generateSalaries } = await import("./actions");
         const fd = new FormData();
         fd.set("month", month);
-        const count = await generateSalaries(fd);
+        const count = unwrap(await generateSalaries(fd));
         alert(isEn ? `${count} staff salary sheets generated!` : `${count} জন কর্মকর্তা/কর্মচারীর বেতনের শিট জেনারেট হয়েছে!`);
       } catch (err: any) {
         alert(err.message);

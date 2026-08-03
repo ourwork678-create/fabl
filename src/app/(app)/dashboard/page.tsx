@@ -223,8 +223,6 @@ export default async function DashboardPage() {
     purchases: m.purchases,
   }));
 
-  const isDemo = salesList.length === 0 && purchasesList.length === 0;
-
   return (
     <div className="space-y-6">
       <PageHeader
@@ -359,7 +357,7 @@ export default async function DashboardPage() {
       {/* ২. CHART & LEDGERS */}
       <div className="grid gap-4 lg:grid-cols-12">
         <div className="lg:col-span-8 flex flex-col justify-between space-y-4">
-          <DashboardChart data={chartData} isDemo={isDemo} />
+          <DashboardChart data={chartData} />
 
           {/* সবচেয়ে বেশি মজুদ থাকা চালের ২ টি হালকা হলুদ ও সবুজ রেসপন্সিভ কার্ড */}
           {sortedTopRice.length > 0 && (

@@ -1,5 +1,7 @@
 "use client";
 
+import { unwrap } from "@/lib/action-result";
+
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Calendar, Wheat, Package, Plus, Trash2 } from "lucide-react";
@@ -141,13 +143,13 @@ export function ProductionForm({
     start(async () => {
       try {
         const { createBatch } = await import("./actions");
-        await createBatch({
+        unwrap(await createBatch({
           date: fd.get("date") as string,
           notes: (fd.get("notes") as string) || undefined,
           recoveryRate: Number(recoveryRate.toFixed(2)),
           inputs: validInputs,
           outputs: validOutputs,
-        });
+        }));
         router.push("/production");
         router.refresh();
       } catch (err: any) {

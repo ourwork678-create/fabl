@@ -1,5 +1,7 @@
 "use client";
 
+import { unwrap } from "@/lib/action-result";
+
 import { useState, useTransition } from "react";
 import { Loader2, Plus, ArrowUpRight } from "lucide-react";
 import { useLang } from "@/components/LangProvider";
@@ -17,7 +19,7 @@ export function CashDepositForm() {
     start(async () => {
       try {
         const { addCashDeposit } = await import("./actions");
-        await addCashDeposit(fd);
+        unwrap(await addCashDeposit(fd));
         setOpen(false);
         (e.target as HTMLFormElement).reset();
       } catch (err: any) {

@@ -1,5 +1,7 @@
 "use client";
 
+import { unwrap } from "@/lib/action-result";
+
 import { useState, useTransition } from "react";
 import { Loader2 } from "lucide-react";
 import { useLang } from "@/components/LangProvider";
@@ -15,7 +17,7 @@ export function SalaryGenForm() {
         const { generateSalaries } = await import("./actions");
         const fd = new FormData();
         fd.set("month", month);
-        const count = await generateSalaries(fd);
+        const count = unwrap(await generateSalaries(fd));
         alert(`${count} ${t("acc.salaryCreated")}`);
       } catch (err: any) {
         alert(err.message);

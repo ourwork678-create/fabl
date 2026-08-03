@@ -1,5 +1,7 @@
 "use server";
 
+import { runAction } from "@/lib/action-result";
+
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/guard";
@@ -40,16 +42,18 @@ export async function createUser(formData: FormData) {
 }
 
 export async function toggleUserActive(id: string) {
-  const session = await requireRole("OWNER", "MANAGER");
-  const callerRole = (session.user as any).role as string;
-  const callerId = (session.user as any).id as string;
-  if (id === callerId) throw new Error("নিজের অ্যাকাউন্ট পরিবর্তন করা যাবে না");
+  return runAction(async () => {
+    const session = await requireRole("OWNER", "MANAGER");
+    const callerRole = (session.user as any).role as string;
+    const callerId = (session.user as any).id as string;
+    if (id === callerId) throw new Error("নিজের অ্যাকাউন্ট পরিবর্তন করা যাবে না");
 
-  const u = await prisma.user.findUniqueOrThrow({ where: { id } });
-  // উচ্চতর বা সমান রোলের ইউজারকে MANAGER পরিবর্তন করতে পারবে না
-  if (roleRank(u.role) >= roleRank(callerRole)) {
-    throw new Error("এই ইউজার পরিবর্তনের অনুমতি নেই");
-  }
-  await prisma.user.update({ where: { id }, data: { active: !u.active } });
-  revalidatePath("/settings");
+    const u = await prisma.user.findUniqueOrThrow({ where: { id } });
+    // উচ্চতর বা সমান রোলের ইউজারকে MANAGER পরিবর্তন করতে পারবে না
+    if (roleRank(u.role) >= roleRank(callerRole)) {
+      throw new Error("এই ইউজার পরিবর্তনের অনুমতি নেই");
+    }
+    await prisma.user.update({ where: { id }, data: { active: !u.active } });
+    revalidatePath("/settings");
+  });
 }

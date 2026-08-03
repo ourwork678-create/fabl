@@ -1,5 +1,7 @@
 "use client";
 
+import { unwrap } from "@/lib/action-result";
+
 import { useState, useTransition } from "react";
 import { Loader2 } from "lucide-react";
 import { EXPENSE_CATEGORIES, PAYMENT_METHODS } from "@/lib/constants";
@@ -16,7 +18,7 @@ export function ExpenseForm() {
     start(async () => {
       try {
         const { addExpense } = await import("./actions");
-        await addExpense(fd);
+        unwrap(await addExpense(fd));
         setOpen(false);
         (e.target as HTMLFormElement).reset();
       } catch (err: any) {

@@ -1,5 +1,7 @@
 "use client";
 
+import { unwrap } from "@/lib/action-result";
+
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Card } from "@/components/ui";
@@ -92,7 +94,7 @@ export function MachinesView({ initialMachines }: { initialMachines: Machine[] }
       const fd = new FormData();
       fd.set("status", newStatus);
       const { setMachineStatus } = await import("./actions");
-      await setMachineStatus(id, fd);
+      unwrap(await setMachineStatus(id, fd));
     } catch (err: any) {
       alert(err.message);
     } finally {
@@ -113,7 +115,7 @@ export function MachinesView({ initialMachines }: { initialMachines: Machine[] }
     setPendingMap((prev) => ({ ...prev, [id]: true }));
     try {
       const { deleteMachine } = await import("./actions");
-      await deleteMachine(id);
+      unwrap(await deleteMachine(id));
       // Remove from local list
       setMachines((prev) => prev.filter((m) => m.id !== id));
     } catch (err: any) {

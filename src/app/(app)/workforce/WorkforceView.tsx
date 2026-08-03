@@ -1,5 +1,7 @@
 "use client";
 
+import { unwrap } from "@/lib/action-result";
+
 import { useState } from "react";
 import Link from "next/link";
 import { useLang } from "@/components/LangProvider";
@@ -90,7 +92,7 @@ export function WorkforceView({
 
     setPendingId(id);
     try {
-      await deleteWorkforceMember(id);
+      unwrap(await deleteWorkforceMember(id));
       setMembers((prev) => prev.filter((m) => m.id !== id));
     } catch (err: any) {
       alert(err.message);

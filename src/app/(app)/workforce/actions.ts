@@ -1,5 +1,7 @@
 "use server";
 
+import { runAction } from "@/lib/action-result";
+
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
@@ -68,148 +70,158 @@ export async function updateWorkforceMember(id: string, formData: FormData) {
 }
 
 export async function deleteWorkforceMember(id: string) {
-  await requireUser();
+  return runAction(async () => {
+    await requireUser();
   
-  // Find linked transactions that have expenses, and delete them
-  const payments = await prisma.workforceTransaction.findMany({
-    where: { workforceMemberId: id, type: "PAYMENT", linkedExpenseId: { not: null } },
-  });
+    // Find linked transactions that have expenses, and delete them
+    const payments = await prisma.workforceTransaction.findMany({
+      where: { workforceMemberId: id, type: "PAYMENT", linkedExpenseId: { not: null } },
+    });
 
-  await prisma.$transaction(async (tx) => {
-    // Delete linked expenses
-    for (const p of payments) {
-      if (p.linkedExpenseId) {
-        await tx.expense.deleteMany({ where: { id: p.linkedExpenseId } });
+    await prisma.$transaction(async (tx) => {
+      // Delete linked expenses
+      for (const p of payments) {
+        if (p.linkedExpenseId) {
+          await tx.expense.deleteMany({ where: { id: p.linkedExpenseId } });
+        }
       }
-    }
-    // Delete member (cascade will delete transactions)
-    await tx.workforceMember.delete({ where: { id } });
-  });
+      // Delete member (cascade will delete transactions)
+      await tx.workforceMember.delete({ where: { id } });
+    });
 
-  revalidatePath("/workforce");
+    revalidatePath("/workforce");
+  });
 }
 
 export async function createWorkforceTransaction(formData: FormData) {
-  await requireUser();
-  const workforceMemberId = formData.get("workforceMemberId") as string;
-  const type = formData.get("type") as string; // BILL | PAYMENT
-  const amount = parseDecimal(formData.get("amount"));
-  const dateStr = formData.get("date") as string;
-  const date = parseDateLocal(dateStr);
-  const description = (formData.get("description") as string)?.trim() || null;
-  const paymentMethod = (formData.get("paymentMethod") as string) || null;
+  return runAction(async () => {
+    await requireUser();
+    const workforceMemberId = formData.get("workforceMemberId") as string;
+    const type = formData.get("type") as string; // BILL | PAYMENT
+    const amount = parseDecimal(formData.get("amount"));
+    const dateStr = formData.get("date") as string;
+    const date = parseDateLocal(dateStr);
+    const description = (formData.get("description") as string)?.trim() || null;
+    const paymentMethod = (formData.get("paymentMethod") as string) || null;
 
-  if (!workforceMemberId || !(amount > 0)) {
-    throw new Error("সঠিক তথ্য প্রদান করুন");
-  }
-  if (type !== "BILL" && type !== "PAYMENT") {
-    throw new Error("সঠিক লেনদেনের ধরন দিন (BILL বা PAYMENT)");
-  }
-
-  const member = await prisma.workforceMember.findUnique({
-    where: { id: workforceMemberId },
-  });
-  if (!member) throw new Error("কর্মী পাওয়া যায়নি");
-
-  await prisma.$transaction(async (tx) => {
-    let linkedExpenseId: string | null = null;
-
-    // 1. If payment, create main account Expense record
-    if (type === "PAYMENT") {
-      if (!paymentMethod) throw new Error("পেমেন্ট পদ্ধতি নির্বাচন করুন");
-
-      const exp = await tx.expense.create({
-        data: {
-          date,
-          category: "শ্রম",
-          amount,
-          paymentMethod,
-          description: `কর্মীবাহিনী পরিশোধ: ${member.name}${description ? ` - ${description}` : ""}`,
-        },
-      });
-      linkedExpenseId = exp.id;
+    if (!workforceMemberId || !(amount > 0)) {
+      throw new Error("সঠিক তথ্য প্রদান করুন");
+    }
+    if (type !== "BILL" && type !== "PAYMENT") {
+      throw new Error("সঠিক লেনদেনের ধরন দিন (BILL বা PAYMENT)");
     }
 
-    // 2. Create Workforce transaction
-    await tx.workforceTransaction.create({
-      data: {
-        workforceMemberId,
-        date,
-        type,
-        amount,
-        paymentMethod,
-        description,
-        linkedExpenseId,
-      },
-    });
-
-    // 3. Update outstanding balance
-    const change = type === "BILL" ? amount : -amount;
-    await tx.workforceMember.update({
+    const member = await prisma.workforceMember.findUnique({
       where: { id: workforceMemberId },
-      data: {
-        balance: { increment: change },
-      },
     });
-  });
+    if (!member) throw new Error("কর্মী পাওয়া যায়নি");
 
-  revalidatePath("/workforce");
-  revalidatePath(`/workforce/${workforceMemberId}`);
-  revalidatePath("/accounts");
+    await prisma.$transaction(async (tx) => {
+      let linkedExpenseId: string | null = null;
+
+      // 1. If payment, create main account Expense record
+      if (type === "PAYMENT") {
+        if (!paymentMethod) throw new Error("পেমেন্ট পদ্ধতি নির্বাচন করুন");
+
+        const exp = await tx.expense.create({
+          data: {
+            date,
+            category: "শ্রম",
+            amount,
+            paymentMethod,
+            description: `কর্মীবাহিনী পরিশোধ: ${member.name}${description ? ` - ${description}` : ""}`,
+          },
+        });
+        linkedExpenseId = exp.id;
+      }
+
+      // 2. Create Workforce transaction
+      await tx.workforceTransaction.create({
+        data: {
+          workforceMemberId,
+          date,
+          type,
+          amount,
+          paymentMethod,
+          description,
+          linkedExpenseId,
+        },
+      });
+
+      // 3. Update outstanding balance
+      const change = type === "BILL" ? amount : -amount;
+      await tx.workforceMember.update({
+        where: { id: workforceMemberId },
+        data: {
+          balance: { increment: change },
+        },
+      });
+    });
+
+    revalidatePath("/workforce");
+    revalidatePath(`/workforce/${workforceMemberId}`);
+    revalidatePath("/accounts");
+  });
 }
 
 export async function deleteWorkforceTransaction(id: string) {
-  await requireUser();
+  return runAction(async () => {
+    await requireUser();
 
-  const txn = await prisma.workforceTransaction.findUnique({
-    where: { id },
-    include: { workforceMember: true },
-  });
-  if (!txn) throw new Error("লেনদেন পাওয়া যায়নি");
-
-  await prisma.$transaction(async (tx) => {
-    // 1. If it was a payment, delete the linked expense (deleteMany → না পেলে ত্রুটি নয়)
-    if (txn.type === "PAYMENT" && txn.linkedExpenseId) {
-      await tx.expense.deleteMany({ where: { id: txn.linkedExpenseId } });
-    }
-
-    // 2. Adjust workforce member balance back
-    const reverseChange = txn.type === "BILL" ? -Number(txn.amount) : Number(txn.amount);
-    await tx.workforceMember.update({
-      where: { id: txn.workforceMemberId },
-      data: {
-        balance: { increment: reverseChange },
-      },
-    });
-
-    // 3. Delete transaction
-    await tx.workforceTransaction.delete({
+    const txn = await prisma.workforceTransaction.findUnique({
       where: { id },
+      include: { workforceMember: true },
     });
-  });
+    if (!txn) throw new Error("লেনদেন পাওয়া যায়নি");
 
-  revalidatePath("/workforce");
-  revalidatePath(`/workforce/${txn.workforceMemberId}`);
-  revalidatePath("/accounts");
+    await prisma.$transaction(async (tx) => {
+      // 1. If it was a payment, delete the linked expense (deleteMany → না পেলে ত্রুটি নয়)
+      if (txn.type === "PAYMENT" && txn.linkedExpenseId) {
+        await tx.expense.deleteMany({ where: { id: txn.linkedExpenseId } });
+      }
+
+      // 2. Adjust workforce member balance back
+      const reverseChange = txn.type === "BILL" ? -Number(txn.amount) : Number(txn.amount);
+      await tx.workforceMember.update({
+        where: { id: txn.workforceMemberId },
+        data: {
+          balance: { increment: reverseChange },
+        },
+      });
+
+      // 3. Delete transaction
+      await tx.workforceTransaction.delete({
+        where: { id },
+      });
+    });
+
+    revalidatePath("/workforce");
+    revalidatePath(`/workforce/${txn.workforceMemberId}`);
+    revalidatePath("/accounts");
+  });
 }
 
 export async function generateSalaries(formData: FormData) {
-  await requireUser();
-  const created = await generateSalariesForMonth(formData.get("month") as string);
+  return runAction(async () => {
+    await requireUser();
+    const created = await generateSalariesForMonth(formData.get("month") as string);
 
-  revalidatePath("/workforce");
-  revalidatePath("/reports");
-  revalidatePath("/dashboard");
-  return created;
+    revalidatePath("/workforce");
+    revalidatePath("/reports");
+    revalidatePath("/dashboard");
+    return created;
+  });
 }
 
 export async function paySalary(id: string) {
-  await requireUser();
-  await markSalaryPaid(id);
+  return runAction(async () => {
+    await requireUser();
+    await markSalaryPaid(id);
 
-  revalidatePath("/workforce");
-  revalidatePath("/reports");
-  revalidatePath("/dashboard");
+    revalidatePath("/workforce");
+    revalidatePath("/reports");
+    revalidatePath("/dashboard");
+  });
 }
 
 export async function createStaffUser(formData: FormData) {

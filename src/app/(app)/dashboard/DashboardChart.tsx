@@ -13,35 +13,19 @@ export type ChartDataItem = {
 
 type Props = {
   data: ChartDataItem[];
-  isDemo?: boolean;
 };
 
-export function DashboardChart({ data, isDemo = false }: Props) {
-  const { t, lang } = useLang();
+export function DashboardChart({ data }: Props) {
+  const { lang } = useLang();
 
-  const isEn = lang === "en";
+  const isEn = lang === 'en';
 
-  // ড্যাশবোর্ড চার্ট ফিলিং - ধারাবাহিক ৬ মাস বজায় রেখে ডেটা প্রদর্শন
-  const chartData = (data && data.length > 0 ? data : []).map((item, idx) => {
-    if (isDemo && item.sales === 0 && item.purchases === 0) {
-      // ডেমো মোডে হালকা ডামি মান দিয়ে চার্ট স্মুথ রাখা
-      const demoSales = [45000, 52000, 49000, 63000, 58000, 71000];
-      const demoPurchases = [32000, 41000, 38000, 45000, 42000, 52000];
-      return {
-        ...item,
-        sales: demoSales[idx % 6],
-        purchases: demoPurchases[idx % 6],
-      };
-    }
-    return item;
-  });
-
-  // সারাংশ সবসময় আসল ডেটা থেকে — ডেমো মান শুধু চার্টের রেখা স্মুথ রাখতে,
-  // আর্থিক সংখ্যায় (মোট বিক্রয়/ক্রয়/মার্জিন) কখনো ঢুকবে না
-  const realData = data && data.length > 0 ? data : [];
-  const totalSales = realData.reduce((sum, item) => sum + item.sales, 0);
-  const totalPurchases = realData.reduce((sum, item) => sum + item.purchases, 0);
+  // চার্টে সবসময় ডেটাবেসের আসল মান — কোনো ডেমো/ডামি সংখ্যা এখানে বসে না
+  const chartData = data ?? [];
+  const totalSales = chartData.reduce((sum, item) => sum + item.sales, 0);
+  const totalPurchases = chartData.reduce((sum, item) => sum + item.purchases, 0);
   const netProfit = totalSales - totalPurchases;
+  const hasData = totalSales > 0 || totalPurchases > 0;
 
   return (
     <div className="card p-6 col-span-2 lg:col-span-3">
@@ -74,6 +58,7 @@ export function DashboardChart({ data, isDemo = false }: Props) {
       <div className="grid gap-4 lg:grid-cols-12">
         {/* রেডি চার্ট এরিয়া */}
         <div className="h-[280px] lg:col-span-7 w-full">
+          {hasData ? (
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={chartData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
               <defs>
@@ -144,6 +129,16 @@ export function DashboardChart({ data, isDemo = false }: Props) {
               />
             </AreaChart>
           </ResponsiveContainer>
+          ) : (
+            <div className="flex h-full flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-slate-200 px-4 text-center">
+              <p className="text-sm font-medium text-slate-500">
+                {isEn ? "No transactions yet" : "এখনো কোনো লেনদেন নেই"}
+              </p>
+              <p className="text-xs text-slate-400">
+                {isEn ? "The chart appears once a purchase or sale is recorded" : "ক্রয় বা বিক্রয় যোগ করলেই চার্ট দেখা যাবে"}
+              </p>
+            </div>
+          )}
         </div>
 
         {/* ডানদিকের সাইড প্যানেল (ইনফো) */}

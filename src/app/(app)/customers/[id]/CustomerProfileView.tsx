@@ -1,5 +1,7 @@
 "use client";
 
+import { unwrap } from "@/lib/action-result";
+
 import { useState } from "react";
 import Link from "next/link";
 import { PageHeader, Card } from "@/components/ui";
@@ -58,14 +60,14 @@ export function CustomerProfileView({
 
     setLoading(true);
     try {
-      await recordPayment({
+      unwrap(await recordPayment({
         partyType: "CUSTOMER",
         partyId: customer.id,
         direction: "RECEIVED",
         amount,
         method,
         note,
-      });
+      }));
       setShowPaymentModal(false);
     } catch (err: any) {
       alert(err.message);
@@ -86,9 +88,9 @@ export function CustomerProfileView({
 
     try {
       if (type === "SALE") {
-        await deleteSale(id);
+        unwrap(await deleteSale(id));
       } else {
-        await deletePayment(id);
+        unwrap(await deletePayment(id));
       }
     } catch (err: any) {
       alert(err.message);

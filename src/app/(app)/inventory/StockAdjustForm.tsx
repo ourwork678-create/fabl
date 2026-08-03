@@ -1,5 +1,7 @@
 "use client";
 
+import { unwrap } from "@/lib/action-result";
+
 import { useState, useTransition } from "react";
 import { Loader2 } from "lucide-react";
 import { useLang } from "@/components/LangProvider";
@@ -19,7 +21,7 @@ export function StockAdjustForm({
     start(async () => {
       try {
         const { adjustStock } = await import("./actions");
-        await adjustStock(item.id, fd);
+        unwrap(await adjustStock(item.id, fd));
         setOpen(false);
         (e.target as HTMLFormElement).reset();
       } catch (err: any) {

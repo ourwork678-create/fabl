@@ -1,5 +1,7 @@
 "use client";
 
+import { unwrap } from "@/lib/action-result";
+
 import { useState } from "react";
 import Link from "next/link";
 import { PageHeader, Card } from "@/components/ui";
@@ -39,7 +41,7 @@ export function MemberProfileView({ member, lang }: { member: Member; lang: stri
     const formData = new FormData(e.currentTarget);
     setLoading(true);
     try {
-      await createWorkforceTransaction(formData);
+      unwrap(await createWorkforceTransaction(formData));
       setShowBillModal(false);
       setShowPaymentModal(false);
     } catch (err: any) {
@@ -60,7 +62,7 @@ export function MemberProfileView({ member, lang }: { member: Member; lang: stri
       return;
 
     try {
-      await deleteWorkforceTransaction(id);
+      unwrap(await deleteWorkforceTransaction(id));
     } catch (err: any) {
       alert(err.message);
     }

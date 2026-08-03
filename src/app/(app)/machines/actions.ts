@@ -1,5 +1,7 @@
 "use server";
 
+import { runAction } from "@/lib/action-result";
+
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
@@ -103,19 +105,23 @@ export async function updateMachine(id: string, formData: FormData) {
 }
 
 export async function deleteMachine(id: string) {
-  await requireUser();
-  await prisma.machine.delete({ where: { id } });
-  revalidatePath("/machines");
+  return runAction(async () => {
+    await requireUser();
+    await prisma.machine.delete({ where: { id } });
+    revalidatePath("/machines");
+  });
 }
 
 export async function setMachineStatus(id: string, formData: FormData) {
-  await requireUser();
-  const status = formData.get("status") as string;
-  if (!MACHINE_STATUSES.includes(status as any)) throw new Error("সঠিক স্ট্যাটাস নয়");
+  return runAction(async () => {
+    await requireUser();
+    const status = formData.get("status") as string;
+    if (!MACHINE_STATUSES.includes(status as any)) throw new Error("সঠিক স্ট্যাটাস নয়");
 
-  await prisma.machine.update({ where: { id }, data: { status } });
-  revalidatePath("/machines");
-  revalidatePath("/monitoring");
+    await prisma.machine.update({ where: { id }, data: { status } });
+    revalidatePath("/machines");
+    revalidatePath("/monitoring");
+  });
 }
 
 function numOrNull(v: FormDataEntryValue | null): number | null {

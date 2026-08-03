@@ -1,5 +1,7 @@
 "use server";
 
+import { runAction } from "@/lib/action-result";
+
 import { revalidatePath } from "next/cache";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
@@ -73,19 +75,21 @@ export async function updateCustomer(id: string, formData: FormData) {
 }
 
 export async function deleteCustomer(id: string) {
-  await requireUser();
-  try {
-    await prisma.customer.delete({
-      where: { id },
-    });
-  } catch (e) {
-    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2003") {
-      throw new Error("এই কাস্টমারের বিক্রয়/পেমেন্ট রেকর্ড আছে, মুছা যাবে না");
+  return runAction(async () => {
+    await requireUser();
+    try {
+      await prisma.customer.delete({
+        where: { id },
+      });
+    } catch (e) {
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2003") {
+        throw new Error("এই কাস্টমারের বিক্রয়/পেমেন্ট রেকর্ড আছে, মুছা যাবে না");
+      }
+      throw e;
     }
-    throw e;
-  }
-  revalidatePath("/customers");
-  revalidatePath("/dashboard");
+    revalidatePath("/customers");
+    revalidatePath("/dashboard");
+  });
 }
 
 // ===================== SUPPLIER ACTIONS =====================
@@ -153,19 +157,21 @@ export async function updateSupplier(id: string, formData: FormData) {
 }
 
 export async function deleteSupplier(id: string) {
-  await requireUser();
-  try {
-    await prisma.supplier.delete({
-      where: { id },
-    });
-  } catch (e) {
-    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2003") {
-      throw new Error("এই সাপ্লায়ারের ক্রয়/পেমেন্ট রেকর্ড আছে, মুছা যাবে না");
+  return runAction(async () => {
+    await requireUser();
+    try {
+      await prisma.supplier.delete({
+        where: { id },
+      });
+    } catch (e) {
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2003") {
+        throw new Error("এই সাপ্লায়ারের ক্রয়/পেমেন্ট রেকর্ড আছে, মুছা যাবে না");
+      }
+      throw e;
     }
-    throw e;
-  }
-  revalidatePath("/suppliers");
-  revalidatePath("/dashboard");
+    revalidatePath("/suppliers");
+    revalidatePath("/dashboard");
+  });
 }
 
 // ===================== PAYMENT ACTIONS =====================
@@ -248,108 +254,112 @@ export async function recordPayment(input: {
   method: string;
   note?: string;
 }) {
-  await requireUser();
-  // NaN/শূন্য/ঋণাত্মক একসাথে বাদ
-  if (!(input.amount > 0)) throw new Error("পরিমাণ সঠিক নয়");
-  // শুধু দুটি বৈধ দিক সাপোর্টেড (অন্যগুলো নীরব no-op নয়, স্পষ্ট ত্রুটি)
-  const valid =
-    (input.partyType === "CUSTOMER" && input.direction === "RECEIVED") ||
-    (input.partyType === "SUPPLIER" && input.direction === "PAID");
-  if (!valid) throw new Error("অসমর্থিত পেমেন্ট দিক");
+  return runAction(async () => {
+    await requireUser();
+    // NaN/শূন্য/ঋণাত্মক একসাথে বাদ
+    if (!(input.amount > 0)) throw new Error("পরিমাণ সঠিক নয়");
+    // শুধু দুটি বৈধ দিক সাপোর্টেড (অন্যগুলো নীরব no-op নয়, স্পষ্ট ত্রুটি)
+    const valid =
+      (input.partyType === "CUSTOMER" && input.direction === "RECEIVED") ||
+      (input.partyType === "SUPPLIER" && input.direction === "PAID");
+    if (!valid) throw new Error("অসমর্থিত পেমেন্ট দিক");
 
-  await withRetry(async () => {
-    const refNo = genReceiptNo("VOU");
-  await prisma.$transaction(async (tx) => {
-    // বর্তমান বকেয়া বের করে ওভার-পেমেন্ট প্রতিরোধ
-    const party =
-      input.partyType === "CUSTOMER"
-        ? await tx.customer.findUniqueOrThrow({ where: { id: input.partyId } })
-        : await tx.supplier.findUniqueOrThrow({ where: { id: input.partyId } });
-    const currentDue = Number(party.dueAmount);
-    if (input.amount > currentDue) {
-      throw new Error(`বকেয়ার চেয়ে বেশি পরিশোধ করা যাবে না (বকেয়া ${currentDue})`);
-    }
+    await withRetry(async () => {
+      const refNo = genReceiptNo("VOU");
+    await prisma.$transaction(async (tx) => {
+      // বর্তমান বকেয়া বের করে ওভার-পেমেন্ট প্রতিরোধ
+      const party =
+        input.partyType === "CUSTOMER"
+          ? await tx.customer.findUniqueOrThrow({ where: { id: input.partyId } })
+          : await tx.supplier.findUniqueOrThrow({ where: { id: input.partyId } });
+      const currentDue = Number(party.dueAmount);
+      if (input.amount > currentDue) {
+        throw new Error(`বকেয়ার চেয়ে বেশি পরিশোধ করা যাবে না (বকেয়া ${currentDue})`);
+      }
 
-    const payment = await tx.payment.create({
-      data: {
-        refNo,
-        partyType: input.partyType,
-        customerId: input.partyType === "CUSTOMER" ? input.partyId : null,
-        supplierId: input.partyType === "SUPPLIER" ? input.partyId : null,
-        direction: input.direction,
-        amount: input.amount,
-        method: input.method,
-        note: input.note || null,
-      },
+      const payment = await tx.payment.create({
+        data: {
+          refNo,
+          partyType: input.partyType,
+          customerId: input.partyType === "CUSTOMER" ? input.partyId : null,
+          supplierId: input.partyType === "SUPPLIER" ? input.partyId : null,
+          direction: input.direction,
+          amount: input.amount,
+          method: input.method,
+          note: input.note || null,
+        },
+      });
+
+      // শর্তসাপেক্ষ ডিক্রিমেন্ট — একই সাথে দুটি পেমেন্ট এলেও বকেয়া ঋণাত্মক হবে না
+      const updated =
+        input.partyType === "CUSTOMER"
+          ? await tx.customer.updateMany({
+              where: { id: input.partyId, dueAmount: { gte: input.amount } },
+              data: { dueAmount: { decrement: input.amount } },
+            })
+          : await tx.supplier.updateMany({
+              where: { id: input.partyId, dueAmount: { gte: input.amount } },
+              data: { dueAmount: { decrement: input.amount } },
+            });
+      if (updated.count === 0) {
+        throw new Error("বকেয়ার চেয়ে বেশি পরিশোধ করা যাবে না (বকেয়া ইতিমধ্যে পরিবর্তিত হয়েছে)");
+      }
+
+      await allocatePayment(tx, input.partyType, input.partyId, payment.id, input.amount);
+    });
     });
 
-    // শর্তসাপেক্ষ ডিক্রিমেন্ট — একই সাথে দুটি পেমেন্ট এলেও বকেয়া ঋণাত্মক হবে না
-    const updated =
-      input.partyType === "CUSTOMER"
-        ? await tx.customer.updateMany({
-            where: { id: input.partyId, dueAmount: { gte: input.amount } },
-            data: { dueAmount: { decrement: input.amount } },
-          })
-        : await tx.supplier.updateMany({
-            where: { id: input.partyId, dueAmount: { gte: input.amount } },
-            data: { dueAmount: { decrement: input.amount } },
-          });
-    if (updated.count === 0) {
-      throw new Error("বকেয়ার চেয়ে বেশি পরিশোধ করা যাবে না (বকেয়া ইতিমধ্যে পরিবর্তিত হয়েছে)");
-    }
-
-    await allocatePayment(tx, input.partyType, input.partyId, payment.id, input.amount);
+    revalidatePath("/customers");
+    revalidatePath(`/customers/${input.partyId}`);
+    revalidatePath("/suppliers");
+    revalidatePath(`/suppliers/${input.partyId}`);
+    revalidatePath("/sales");
+    revalidatePath("/purchases");
+    revalidatePath("/dashboard");
   });
-  });
-
-  revalidatePath("/customers");
-  revalidatePath(`/customers/${input.partyId}`);
-  revalidatePath("/suppliers");
-  revalidatePath(`/suppliers/${input.partyId}`);
-  revalidatePath("/sales");
-  revalidatePath("/purchases");
-  revalidatePath("/dashboard");
 }
 
 export async function deletePayment(id: string) {
-  await requireUser();
+  return runAction(async () => {
+    await requireUser();
 
-  await prisma.$transaction(async (tx) => {
-    const payment = await tx.payment.findUnique({ where: { id } });
-    if (!payment) return;
+    await prisma.$transaction(async (tx) => {
+      const payment = await tx.payment.findUnique({ where: { id } });
+      if (!payment) return;
 
-    const partyId = payment.customerId || payment.supplierId;
-    if (partyId) {
-      const valid =
-        (payment.partyType === "CUSTOMER" && payment.direction === "RECEIVED") ||
-        (payment.partyType === "SUPPLIER" && payment.direction === "PAID");
-      if (valid) {
-        // শুধু যে অংশ আসলে ফেরত বরাদ্দ হয়েছে সেটাই বকেয়ায় যোগ হবে (ডিলিট হওয়া সেল/পারচেজের ক্ষেত্রে ০)
-        const restored = await reversePayment(tx, payment.id);
-        if (restored > 0) {
-          if (payment.partyType === "CUSTOMER") {
-            await tx.customer.update({
-              where: { id: partyId },
-              data: { dueAmount: { increment: restored } },
-            });
-          } else {
-            await tx.supplier.update({
-              where: { id: partyId },
-              data: { dueAmount: { increment: restored } },
-            });
+      const partyId = payment.customerId || payment.supplierId;
+      if (partyId) {
+        const valid =
+          (payment.partyType === "CUSTOMER" && payment.direction === "RECEIVED") ||
+          (payment.partyType === "SUPPLIER" && payment.direction === "PAID");
+        if (valid) {
+          // শুধু যে অংশ আসলে ফেরত বরাদ্দ হয়েছে সেটাই বকেয়ায় যোগ হবে (ডিলিট হওয়া সেল/পারচেজের ক্ষেত্রে ০)
+          const restored = await reversePayment(tx, payment.id);
+          if (restored > 0) {
+            if (payment.partyType === "CUSTOMER") {
+              await tx.customer.update({
+                where: { id: partyId },
+                data: { dueAmount: { increment: restored } },
+              });
+            } else {
+              await tx.supplier.update({
+                where: { id: partyId },
+                data: { dueAmount: { increment: restored } },
+              });
+            }
           }
         }
       }
-    }
 
-    // বরাদ্দ রেকর্ড পরিষ্কার (reversePayment না চললেও এতিম রেকর্ড না থাকে)
-    await tx.paymentAllocation.deleteMany({ where: { paymentId: id } });
-    await tx.payment.delete({ where: { id } });
+      // বরাদ্দ রেকর্ড পরিষ্কার (reversePayment না চললেও এতিম রেকর্ড না থাকে)
+      await tx.paymentAllocation.deleteMany({ where: { paymentId: id } });
+      await tx.payment.delete({ where: { id } });
+    });
+
+    revalidatePath("/customers");
+    revalidatePath("/suppliers");
+    revalidatePath("/sales");
+    revalidatePath("/purchases");
+    revalidatePath("/dashboard");
   });
-
-  revalidatePath("/customers");
-  revalidatePath("/suppliers");
-  revalidatePath("/sales");
-  revalidatePath("/purchases");
-  revalidatePath("/dashboard");
 }

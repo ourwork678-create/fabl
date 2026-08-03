@@ -1,5 +1,7 @@
 "use client";
 
+import { unwrap } from "@/lib/action-result";
+
 import { useState, useTransition } from "react";
 import { Loader2 } from "lucide-react";
 import { PAYMENT_METHODS } from "@/lib/constants";
@@ -24,14 +26,14 @@ export function PaymentForm({
     start(async () => {
       try {
         const { recordPayment } = await import("./actions");
-        await recordPayment({
+        unwrap(await recordPayment({
           partyType,
           partyId,
           direction,
           amount: Number(fd.get("amount")),
           method: (fd.get("method") as string) || "CASH",
           note: (fd.get("note") as string) || undefined,
-        });
+        }));
         setOpen(false);
         (e.target as HTMLFormElement).reset();
       } catch (err: any) {

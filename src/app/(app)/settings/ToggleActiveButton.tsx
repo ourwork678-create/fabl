@@ -1,5 +1,7 @@
 "use client";
 
+import { unwrap } from "@/lib/action-result";
+
 import { useTransition } from "react";
 import { Loader2 } from "lucide-react";
 import { useLang } from "@/components/LangProvider";
@@ -12,7 +14,7 @@ export function ToggleActiveButton({ id, active }: { id: string; active: boolean
     start(async () => {
       try {
         const { toggleUserActive } = await import("./actions");
-        await toggleUserActive(id);
+        unwrap(await toggleUserActive(id));
       } catch (err: any) {
         alert(err.message);
       }
