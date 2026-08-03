@@ -37,3 +37,6 @@ next-env.d.ts
 
 # env ব্যাকআপ ফাইলও কখনো কমিট হবে না
 .env.backup*
+
+# Vercel-এ পেস্ট করার জন্য অস্থায়ী ফাইল (গোপন মান থাকে)
+vercel-env.txt
