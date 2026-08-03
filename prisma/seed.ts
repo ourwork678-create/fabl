@@ -5,7 +5,9 @@
 // স্ক্রিপ্টটি কোনো ডেটা মোছে না, তাই বারবার চালালেও নিরাপদ।
 //
 // চালানোর নিয়ম:
-//   OWNER_EMAIL=owner@example.com OWNER_PASSWORD='শক্তিশালী-পাসওয়ার্ড' npm run db:seed
+//   npm run db:seed
+// ইমেইল ও পাসওয়ার্ড টার্মিনালেই জিজ্ঞেস করা হবে (চাইলে OWNER_EMAIL /
+// OWNER_PASSWORD এনভায়রনমেন্ট ভেরিয়েবল দিয়েও দেওয়া যায়)।
 
 import "dotenv/config";
 import readline from "node:readline/promises";
@@ -32,12 +34,12 @@ async function main() {
 
   if (!email || !password) {
     throw new Error(
-      "OWNER_EMAIL এবং OWNER_PASSWORD দুটোই দিতে হবে।\n" +
-        "উদাহরণ: OWNER_EMAIL=owner@example.com OWNER_PASSWORD='...' npm run db:seed"
+      "ইমেইল ও পাসওয়ার্ড দুটোই দিতে হবে।\n" +
+        "খালি রেখে এন্টার দেবেন না।"
     );
   }
   if (password.length < 10) {
-    throw new Error("OWNER_PASSWORD অন্তত ১০ অক্ষরের হতে হবে");
+    throw new Error("পাসওয়ার্ড অন্তত ১০ অক্ষরের হতে হবে");
   }
 
   const existing = await prisma.user.findUnique({ where: { email } });
