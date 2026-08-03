@@ -44,7 +44,7 @@ function LoginForm() {
     <div className={`${lang === "en" ? "font-gsans" : "font-bangla"} relative min-h-screen`}>
       {/* ব্যাকগ্রাউন্ড: ধানক্ষেতের ছবি (না থাকলে গ্রাডিয়েন্ট ফলব্যাক) */}
       <div
-        className="fixed inset-0 -z-20 scale-110 bg-gradient-to-br from-emerald-800 via-emerald-700 to-lime-700 bg-cover bg-center blur-[5px]"
+        className="fixed inset-0 -z-20 scale-110 bg-gradient-to-br from-emerald-800 via-emerald-700 to-lime-700 bg-cover bg-center blur-[6px]"
         style={{ backgroundImage: "url('/login-bg.png')" }}
       />
       <div className="fixed inset-0 -z-10 bg-slate-950/20" />
@@ -56,13 +56,47 @@ function LoginForm() {
       <div className="flex min-h-screen flex-col items-center justify-center px-4 pb-10 pt-20 sm:py-10">
         <div className="grid w-full max-w-[1000px] gap-4 rounded-[25px] bg-white p-3 shadow-2xl shadow-black/30 lg:min-h-[620px] lg:grid-cols-2">
           {/* বাঁ পাশ: ছবির ভেতরে বসানো প্যানেল */}
-          <div
-            className="relative flex min-h-[240px] flex-col overflow-hidden rounded-[18px] bg-emerald-800 bg-cover bg-center p-7 sm:p-8"
-            style={{ backgroundImage: "url('/login-bg.png')" }}
-          >
-            {/* নিচের অংশে ব্লার + স্করিম, উপরের টেক্সট পড়ার জন্য */}
-            <div className="pointer-events-none absolute inset-x-0 bottom-0 top-1/3 backdrop-blur-lg" />
-            <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-slate-950/65 via-slate-950/40 to-emerald-950/60" />
+          <div className="relative flex min-h-[240px] flex-col overflow-hidden rounded-[18px] bg-emerald-950 p-7 sm:p-8">
+            {/* খাঁজকাটা কাচের বিকৃতি: উল্লম্ব রেখা বরাবর ছবিটা ভেঙে যায় */}
+            <svg aria-hidden className="pointer-events-none absolute h-0 w-0">
+              <filter id="fluted-glass" x="-20%" y="-20%" width="140%" height="140%">
+                <feTurbulence
+                  type="fractalNoise"
+                  baseFrequency="0.045 0.0004"
+                  numOctaves={1}
+                  seed={7}
+                  result="ridges"
+                />
+                <feDisplacementMap
+                  in="SourceGraphic"
+                  in2="ridges"
+                  scale={38}
+                  xChannelSelector="R"
+                  yChannelSelector="G"
+                />
+              </filter>
+            </svg>
+
+            {/* ছবি — কাচের পেছনের আলোর মতো, হালকা ঝাপসা */}
+            <div
+              className="pointer-events-none absolute inset-0 scale-125 bg-emerald-800 bg-cover bg-center"
+              style={{
+                backgroundImage: "url('/login-bg.png')",
+                filter: "blur(40px) url(#fluted-glass)",
+              }}
+            />
+            {/* মাঝ থেকে ছড়ানো আলো */}
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(120%_80%_at_50%_35%,rgba(163,230,53,0.22),transparent_68%)]" />
+            {/* কাচের খাঁজের হাইলাইট */}
+            <div
+              className="pointer-events-none absolute inset-0"
+              style={{
+                backgroundImage:
+                  "repeating-linear-gradient(90deg, rgba(255,255,255,0.07) 0px, rgba(255,255,255,0.01) 5px, rgba(0,0,0,0.09) 11px, rgba(0,0,0,0.02) 16px, rgba(255,255,255,0.07) 22px)",
+              }}
+            />
+            {/* টেক্সট পড়ার জন্য স্করিম */}
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-slate-950/40 via-slate-950/20 to-emerald-950/45" />
 
             <div className="relative flex items-center gap-2.5">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20 text-white ring-1 ring-white/30 backdrop-blur">
