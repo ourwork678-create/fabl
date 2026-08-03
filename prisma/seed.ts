@@ -8,14 +8,26 @@
 //   OWNER_EMAIL=owner@example.com OWNER_PASSWORD='শক্তিশালী-পাসওয়ার্ড' npm run db:seed
 
 import "dotenv/config";
+import readline from "node:readline/promises";
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
+// এনভায়রনমেন্ট ভেরিয়েবল না দিলে টার্মিনালেই জিজ্ঞেস করা হয় —
+// পাসওয়ার্ড তখন কমান্ড হিস্ট্রিতে বা কোনো ফাইলে জমা থাকে না।
+async function ask(question: string): Promise<string> {
+  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+  try {
+    return (await rl.question(question)).trim();
+  } finally {
+    rl.close();
+  }
+}
+
 async function main() {
-  const email = process.env.OWNER_EMAIL?.trim();
-  const password = process.env.OWNER_PASSWORD;
+  const email = (process.env.OWNER_EMAIL?.trim()) || (await ask("মালিকের ইমেইল: "));
+  const password = process.env.OWNER_PASSWORD || (await ask("পাসওয়ার্ড (অন্তত ১০ অক্ষর): "));
   const name = process.env.OWNER_NAME?.trim() || "মালিক";
 
   if (!email || !password) {
