@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Wheat, Loader2 } from "lucide-react";
@@ -17,6 +17,52 @@ function LoginForm() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // "জানালা" লেয়ারটা পেজের মূল ব্যাকগ্রাউন্ডের সাথে মিলিয়ে বসানো।
+  // background-attachment: fixed দিয়ে এটা এক লাইনে হতো, কিন্তু iOS Safari
+  // ওটা সাপোর্ট করে না — আর blur ফিল্টার থাকলে যেকোনো ব্রাউজারেই ভেঙে যায়।
+  // তাই viewport-এর cover সাইজ/পজিশন নিজে হিসাব করে বসাচ্ছি।
+  const glassRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const node = glassRef.current;
+    if (!node) return;
+
+    let natural: { w: number; h: number } | null = null;
+
+    function place() {
+      const el = glassRef.current;
+      if (!el || !natural) return;
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      const scale = Math.max(vw / natural.w, vh / natural.h);
+      const bw = natural.w * scale;
+      const bh = natural.h * scale;
+      const rect = el.getBoundingClientRect();
+      el.style.backgroundSize = `${bw}px ${bh}px`;
+      el.style.backgroundPosition = `${(vw - bw) / 2 - rect.left}px ${
+        (vh - bh) / 2 - rect.top
+      }px`;
+    }
+
+    const img = new window.Image();
+    img.onload = () => {
+      natural = { w: img.naturalWidth, h: img.naturalHeight };
+      place();
+    };
+    img.src = "/login-bg.png";
+
+    window.addEventListener("resize", place);
+    window.addEventListener("scroll", place, { passive: true });
+    const ro = new ResizeObserver(place);
+    ro.observe(node);
+
+    return () => {
+      window.removeEventListener("resize", place);
+      window.removeEventListener("scroll", place);
+      ro.disconnect();
+    };
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -42,9 +88,16 @@ function LoginForm() {
 
   return (
     <div className={`${lang === "en" ? "font-gsans" : "font-bangla"} relative min-h-screen`}>
-      {/* ব্যাকগ্রাউন্ড: ধানক্ষেতের ছবি (না থাকলে গ্রাডিয়েন্ট ফলব্যাক) */}
+      {/* ব্যাকগ্রাউন্ড: ধানক্ষেতের ছবি (না থাকলে গ্রাডিয়েন্ট ফলব্যাক)।
+          দুই স্তর — নিচেরটা শার্প, উপরেরটা ঝাপসা। দুটোই ঠিক viewport-সাইজ
+          (scale নেই), যাতে জানালার bg-fixed ফ্রেমিংয়ের সাথে হুবহু মেলে;
+          blur-এর কিনারার ফিকে অংশটুকু নিচের শার্প কপি ঢেকে দেয়। */}
       <div
-        className="fixed inset-0 -z-20 scale-110 bg-gradient-to-br from-emerald-800 via-emerald-700 to-lime-700 bg-cover bg-center blur-[6px]"
+        className="fixed inset-0 -z-30 bg-gradient-to-br from-emerald-800 via-emerald-700 to-lime-700 bg-cover bg-center"
+        style={{ backgroundImage: "url('/login-bg.png')" }}
+      />
+      <div
+        className="fixed inset-0 -z-20 bg-cover bg-center blur-[6px]"
         style={{ backgroundImage: "url('/login-bg.png')" }}
       />
       <div className="fixed inset-0 -z-10 bg-slate-950/20" />
@@ -57,56 +110,15 @@ function LoginForm() {
         <div className="grid w-full max-w-[1000px] gap-4 rounded-[25px] bg-white p-3 shadow-2xl shadow-black/30 lg:min-h-[620px] lg:grid-cols-2">
           {/* বাঁ পাশ: ছবির ভেতরে বসানো প্যানেল */}
           <div className="relative flex min-h-[240px] flex-col overflow-hidden rounded-[18px] bg-emerald-950 p-7 sm:p-8">
-            {/* খাঁজকাটা কাচের বিকৃতি: উল্লম্ব রেখা বরাবর ছবিটা ভেঙে যায়।
-                মোবাইলে খাঁজগুলো ~৩০% ঘন — তাই আলাদা frequency-র দুটো ফিল্টার। */}
-            <svg aria-hidden className="pointer-events-none absolute h-0 w-0">
-              <filter id="fluted-glass" x="-20%" y="-20%" width="140%" height="140%">
-                <feTurbulence
-                  type="fractalNoise"
-                  baseFrequency="0.045 0.0004"
-                  numOctaves={1}
-                  seed={7}
-                  result="ridges"
-                />
-                <feDisplacementMap
-                  in="SourceGraphic"
-                  in2="ridges"
-                  scale={38}
-                  xChannelSelector="R"
-                  yChannelSelector="G"
-                />
-              </filter>
-              <filter id="fluted-glass-dense" x="-20%" y="-20%" width="140%" height="140%">
-                <feTurbulence
-                  type="fractalNoise"
-                  baseFrequency="0.064 0.0004"
-                  numOctaves={1}
-                  seed={7}
-                  result="ridges"
-                />
-                <feDisplacementMap
-                  in="SourceGraphic"
-                  in2="ridges"
-                  scale={38}
-                  xChannelSelector="R"
-                  yChannelSelector="G"
-                />
-              </filter>
-            </svg>
-
-            {/* ছবি — কাচের পেছনের আলোর মতো, হালকা ঝাপসা */}
+            {/* খোলা জানালা: এখানে পেজের মূল ব্যাকগ্রাউন্ডই দেখা যায়।
+                প্যানেলের চেয়ে ৮০px বড় করে রাখা, যাতে blur(40px)-এর ফিকে
+                কিনারা কাটা অংশের বাইরে পড়ে। পজিশন বসায় উপরের useEffect। */}
             <div
-              className="pointer-events-none absolute inset-0 scale-125 bg-emerald-800 bg-cover bg-center sm:hidden"
+              ref={glassRef}
+              className="pointer-events-none absolute -inset-[80px] bg-emerald-800 bg-cover bg-center bg-no-repeat"
               style={{
                 backgroundImage: "url('/login-bg.png')",
-                filter: "blur(40px) url(#fluted-glass-dense)",
-              }}
-            />
-            <div
-              className="pointer-events-none absolute inset-0 hidden scale-125 bg-emerald-800 bg-cover bg-center sm:block"
-              style={{
-                backgroundImage: "url('/login-bg.png')",
-                filter: "blur(40px) url(#fluted-glass)",
+                filter: "blur(40px)",
               }}
             />
             {/* মাঝ থেকে ছড়ানো আলো */}
