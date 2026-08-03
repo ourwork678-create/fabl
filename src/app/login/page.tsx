@@ -53,11 +53,12 @@ function LoginForm() {
         <LangToggle />
       </div>
 
-      <div className="flex min-h-screen flex-col items-center justify-center px-4 pb-10 pt-20 sm:py-10">
+      <div className="flex min-h-screen flex-col items-center justify-center px-[23px] pb-10 pt-20 sm:px-4 sm:py-10">
         <div className="grid w-full max-w-[1000px] gap-4 rounded-[25px] bg-white p-3 shadow-2xl shadow-black/30 lg:min-h-[620px] lg:grid-cols-2">
           {/* বাঁ পাশ: ছবির ভেতরে বসানো প্যানেল */}
           <div className="relative flex min-h-[240px] flex-col overflow-hidden rounded-[18px] bg-emerald-950 p-7 sm:p-8">
-            {/* খাঁজকাটা কাচের বিকৃতি: উল্লম্ব রেখা বরাবর ছবিটা ভেঙে যায় */}
+            {/* খাঁজকাটা কাচের বিকৃতি: উল্লম্ব রেখা বরাবর ছবিটা ভেঙে যায়।
+                মোবাইলে খাঁজগুলো ~৩০% ঘন — তাই আলাদা frequency-র দুটো ফিল্টার। */}
             <svg aria-hidden className="pointer-events-none absolute h-0 w-0">
               <filter id="fluted-glass" x="-20%" y="-20%" width="140%" height="140%">
                 <feTurbulence
@@ -75,11 +76,34 @@ function LoginForm() {
                   yChannelSelector="G"
                 />
               </filter>
+              <filter id="fluted-glass-dense" x="-20%" y="-20%" width="140%" height="140%">
+                <feTurbulence
+                  type="fractalNoise"
+                  baseFrequency="0.064 0.0004"
+                  numOctaves={1}
+                  seed={7}
+                  result="ridges"
+                />
+                <feDisplacementMap
+                  in="SourceGraphic"
+                  in2="ridges"
+                  scale={38}
+                  xChannelSelector="R"
+                  yChannelSelector="G"
+                />
+              </filter>
             </svg>
 
             {/* ছবি — কাচের পেছনের আলোর মতো, হালকা ঝাপসা */}
             <div
-              className="pointer-events-none absolute inset-0 scale-125 bg-emerald-800 bg-cover bg-center"
+              className="pointer-events-none absolute inset-0 scale-125 bg-emerald-800 bg-cover bg-center sm:hidden"
+              style={{
+                backgroundImage: "url('/login-bg.png')",
+                filter: "blur(40px) url(#fluted-glass-dense)",
+              }}
+            />
+            <div
+              className="pointer-events-none absolute inset-0 hidden scale-125 bg-emerald-800 bg-cover bg-center sm:block"
               style={{
                 backgroundImage: "url('/login-bg.png')",
                 filter: "blur(40px) url(#fluted-glass)",
@@ -87,12 +111,12 @@ function LoginForm() {
             />
             {/* মাঝ থেকে ছড়ানো আলো */}
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(120%_80%_at_50%_35%,rgba(163,230,53,0.22),transparent_68%)]" />
-            {/* কাচের খাঁজের হাইলাইট */}
+            {/* কাচের খাঁজের হাইলাইট — মোবাইলে খাঁজের দূরত্ব ৩০% কম */}
             <div
-              className="pointer-events-none absolute inset-0"
+              className="pointer-events-none absolute inset-0 [--flute:0.7] sm:[--flute:1]"
               style={{
                 backgroundImage:
-                  "repeating-linear-gradient(90deg, rgba(255,255,255,0.07) 0px, rgba(255,255,255,0.01) 5px, rgba(0,0,0,0.09) 11px, rgba(0,0,0,0.02) 16px, rgba(255,255,255,0.07) 22px)",
+                  "repeating-linear-gradient(90deg, rgba(255,255,255,0.07) 0px, rgba(255,255,255,0.01) calc(5px * var(--flute, 1)), rgba(0,0,0,0.09) calc(11px * var(--flute, 1)), rgba(0,0,0,0.02) calc(16px * var(--flute, 1)), rgba(255,255,255,0.07) calc(22px * var(--flute, 1)))",
               }}
             />
             {/* টেক্সট পড়ার জন্য স্করিম */}
