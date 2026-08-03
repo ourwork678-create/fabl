@@ -165,7 +165,7 @@ function LoginForm() {
               <button
                 type="submit"
                 disabled={loading}
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand-600 py-2.5 text-sm font-semibold text-white shadow-lg shadow-brand-200/60 transition hover:bg-brand-700 disabled:opacity-70"
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-black py-2.5 text-sm font-semibold text-white shadow-lg shadow-black/20 transition hover:bg-neutral-800 disabled:opacity-70"
               >
                 {loading ? <Loader2 size={16} className="animate-spin" /> : null}
                 {t("login.submit")}
